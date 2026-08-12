@@ -1514,7 +1514,7 @@ export default function App() {
                 <input 
                   type="text" 
                   style={{...styles.input, marginBottom: 0}} 
-                  value={transposeString(songKey || "G", transSteps)} 
+                  value={songKey} 
                   onChange={e => {
                     saveSnapshot();
                     setSongKey(e.target.value);
