@@ -173,6 +173,45 @@ const transposeString = (chord, steps) => {
   });
 };
 
+const transposeStoredChord = (chord, steps) => {
+  if (!chord || steps === 0) return chord;
+  const { root, suffix, slash } = parseChordInputString(chord);
+  
+  const transposedRoot = transposeString(root, steps);
+  let transposedSlash = '';
+  if (slash && slash !== '/') {
+    const slashRoot = parseSlashRoot(slash);
+    transposedSlash = '/' + transposeString(slashRoot, steps);
+  } else if (slash === '/') {
+    transposedSlash = '/';
+  }
+
+  return transposedRoot + suffix + transposedSlash;
+};
+
+const getSemitoneDifference = (oldKey, newKey) => {
+  if (!oldKey || !newKey) return 0;
+  
+  const cleanOld = oldKey.trim().replace(/m$/, '');
+  const cleanNew = newKey.trim().replace(/m$/, '');
+
+  const sharps = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+  const flats = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B'];
+
+  let oldIdx = sharps.indexOf(cleanOld);
+  if (oldIdx === -1) oldIdx = flats.indexOf(cleanOld);
+
+  let newIdx = sharps.indexOf(cleanNew);
+  if (newIdx === -1) newIdx = flats.indexOf(cleanNew);
+
+  if (oldIdx === -1 || newIdx === -1) return 0;
+
+  let diff = (newIdx - oldIdx) % 12;
+  if (diff < -6) diff += 12;
+  if (diff > 6) diff -= 12;
+  return diff;
+};
+
 const parseChordInputString = (inputStr) => {
   if (!inputStr) return { root: '', suffix: '', slash: '' };
 
@@ -1517,7 +1556,21 @@ export default function App() {
                   value={songKey} 
                   onChange={e => {
                     saveSnapshot();
-                    setSongKey(e.target.value);
+                    const newKey = e.target.value;
+                    const diff = getSemitoneDifference(songKey, newKey);
+                    if (diff !== 0 && Object.keys(chordMap).length > 0) {
+                      setChordMap(prev => {
+                        const newMap = {};
+                        Object.keys(prev).forEach(id => {
+                          const originalChord = prev[id];
+                          if (originalChord) {
+                            newMap[id] = transposeStoredChord(originalChord, diff);
+                          }
+                        });
+                        return newMap;
+                      });
+                    }
+                    setSongKey(newKey);
                     setTranspose("0");
                   }} 
                   placeholder="G" 
