@@ -1,0 +1,16 @@
+{
+  "name": "mysongchart-app",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "cd my-app && npm run dev",
+    "build": "cd my-app && npm run build",
+    "lint": "cd my-app && npm run lint",
+    "preview": "cd my-app && npm run preview"
+  },
+  "dependencies": {
+    "vite": "^8.2.0",
+    "@vitejs/plugin-react": "^6.0.4"
+  }
+}
