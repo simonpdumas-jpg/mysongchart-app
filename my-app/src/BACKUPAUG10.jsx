@@ -4,8 +4,8 @@ import html2pdf from 'html2pdf.js';
 import { SignedIn, SignedOut, SignInButton, UserButton, useUser, useClerk } from '@clerk/clerk-react';
 
 // --- STRIPE CHECKOUT LINKS ---
-const STRIPE_MONTHLY_URL = "https://buy.stripe.com/bJecN6c32g7W8sAbGbbMQ01";
-const STRIPE_ANNUAL_URL = "https://buy.stripe.com/aFa7sM3ww5ti38g11xbMQ02";
+const STRIPE_MONTHLY_URL = "https://buy.stripe.com/7sY4gAffef3SgZ6aC7bMQ03";
+const STRIPE_ANNUAL_URL = "https://buy.stripe.com/4gMaEYd7608Y24cfWrbMQ04";
 
 // --- GLOBAL STYLES ---
 const globalStyles = `
