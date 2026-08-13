@@ -624,8 +624,109 @@ function DroppableWord({ id, word, assignedChord, isLight, pdfTheme, isFocused, 
     boxShadow: activeBg ? '0 0 0 2px rgba(59, 130, 246, 0.4)' : 'none'
   };
 
+  const inputRef = useRef(null);
+
+  useEffect(() => {
+    if (isFocused && inputRef.current) {
+      inputRef.current.focus();
+    }
+  }, [isFocused]);
+
+  const handleInputChange = (e) => {
+    const val = e.target.value;
+    
+    if (val === '') {
+      // Backspace pressed
+      const event = new KeyboardEvent('keydown', {
+        key: 'Backspace',
+        bubbles: true,
+        cancelable: true
+      });
+      window.dispatchEvent(event);
+    } else if (val === '  ') {
+      // Space pressed
+      const event = new KeyboardEvent('keydown', {
+        key: ' ',
+        bubbles: true,
+        cancelable: true
+      });
+      window.dispatchEvent(event);
+    } else if (val.length > 1) {
+      const char = val.slice(1);
+      if (/^[a-zA-Z0-9#/+\-()]$/.test(char)) {
+        const event = new KeyboardEvent('keydown', {
+          key: char,
+          bubbles: true,
+          cancelable: true
+        });
+        window.dispatchEvent(event);
+      } else if (char === '\n') {
+        const event = new KeyboardEvent('keydown', {
+          key: 'Enter',
+          bubbles: true,
+          cancelable: true
+        });
+        window.dispatchEvent(event);
+      }
+    }
+    
+    if (inputRef.current) {
+      inputRef.current.value = ' ';
+    }
+  };
+
+  const handleInputKeyDown = (e) => {
+    // If we type some standard special non-character key that isn't handled by onChange,
+    // like Enter or Escape, we can let them bubble, but just to be safe, we can handle them
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      const event = new KeyboardEvent('keydown', {
+        key: 'Enter',
+        bubbles: true,
+        cancelable: true
+      });
+      window.dispatchEvent(event);
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      const event = new KeyboardEvent('keydown', {
+        key: 'Escape',
+        bubbles: true,
+        cancelable: true
+      });
+      window.dispatchEvent(event);
+    }
+  };
+
   return (
-    <div className="canvas-word avoid-break" style={styles.canvasWord} onClick={(e) => { e.stopPropagation(); onFocus(id); }}>
+    <div className="canvas-word avoid-break" style={{ ...styles.canvasWord, position: 'relative' }} onClick={(e) => { e.stopPropagation(); onFocus(id); }}>
+      {isFocused && (
+        <input
+          ref={inputRef}
+          type="text"
+          defaultValue=" "
+          onChange={handleInputChange}
+          onKeyDown={handleInputKeyDown}
+          autoCapitalize="none"
+          autoCorrect="off"
+          autoComplete="off"
+          spellCheck="false"
+          style={{
+            position: 'absolute',
+            opacity: 0,
+            left: 0,
+            top: 0,
+            width: '100%',
+            height: '100%',
+            padding: 0,
+            margin: 0,
+            border: 'none',
+            outline: 'none',
+            zIndex: 10,
+            cursor: 'pointer',
+            background: 'transparent'
+          }}
+        />
+      )}
       <div ref={setNodeRef} className="drop-zone" style={dropZoneStyle}>
         {assignedChord && (
           <DraggableCanvasChord 
