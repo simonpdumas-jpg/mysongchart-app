@@ -1,8 +1,29 @@
 import { createClerkClient } from '@clerk/backend';
 import Stripe from 'stripe';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
-const clerkClient = createClerkClient({ secretKey: process.env.CLERK_SECRET_KEY });
+// Safe initialization of Stripe and Clerk to prevent FUNCTION_INVOCATION_FAILED on cold starts
+let stripe = null;
+let clerkClient = null;
+
+try {
+  if (process.env.STRIPE_SECRET_KEY) {
+    stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+  } else {
+    console.error('STRIPE_SECRET_KEY is missing from environment variables.');
+  }
+} catch (err) {
+  console.error('Error initializing Stripe:', err);
+}
+
+try {
+  if (process.env.CLERK_SECRET_KEY) {
+    clerkClient = createClerkClient({ secretKey: process.env.CLERK_SECRET_KEY });
+  } else {
+    console.error('CLERK_SECRET_KEY is missing from environment variables.');
+  }
+} catch (err) {
+  console.error('Error initializing Clerk:', err);
+}
 
 export const config = {
   api: {
@@ -21,6 +42,17 @@ async function buffer(readable) {
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ message: 'Method not allowed' });
+  }
+
+  // Check if environment variables are properly set
+  if (!stripe || !clerkClient) {
+    const missing = [];
+    if (!process.env.STRIPE_SECRET_KEY) missing.push('STRIPE_SECRET_KEY');
+    if (!process.env.CLERK_SECRET_KEY) missing.push('CLERK_SECRET_KEY');
+    return res.status(500).json({
+      received: false,
+      message: `Backend setup incomplete. Missing configuration for: ${missing.join(', ')}. Please add them in the Vercel Dashboard project settings.`
+    });
   }
 
   const buf = await buffer(req);
