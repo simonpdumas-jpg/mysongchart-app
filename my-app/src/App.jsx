@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { DndContext, useDraggable, useDroppable, useSensor, useSensors, PointerSensor, TouchSensor } from '@dnd-kit/core';
 import html2pdf from 'html2pdf.js';
-import { SignedIn, SignedOut, SignInButton, UserButton, useUser, useClerk } from '@clerk/clerk-react';
+import { SignedIn, SignedOut, SignUpButton, UserButton, useUser, useClerk } from '@clerk/clerk-react';
 
 // --- STRIPE CHECKOUT LINKS ---
 const STRIPE_MONTHLY_URL = "https://buy.stripe.com/7sY4gAffef3SgZ6aC7bMQ03";
@@ -760,7 +760,7 @@ const kbdStyle = (isLight) => ({
 
 export default function App() {
   const { user, isSignedIn } = useUser();
-  const { openSignIn } = useClerk();
+  const { openSignUp } = useClerk();
 
   const [isLightMode, setIsLightMode] = useState(true);
   const [activeMobileTab, setActiveMobileTab] = useState('chart');
@@ -1047,7 +1047,7 @@ export default function App() {
   const handleUpgradeMonthly = () => {
     if (!isSignedIn) {
       setShowUpgradeModal(false);
-      openSignIn();
+      openSignUp();
       return;
     }
     const userEmail = user?.primaryEmailAddress?.emailAddress;
@@ -1059,7 +1059,7 @@ export default function App() {
   const handleUpgradeAnnual = () => {
     if (!isSignedIn) {
       setShowUpgradeModal(false);
-      openSignIn();
+      openSignUp();
       return;
     }
     const userEmail = user?.primaryEmailAddress?.emailAddress;
@@ -1387,7 +1387,7 @@ export default function App() {
 
   const handleExportPDF = () => {
     if (!isPro && pdfTheme !== 'classic') {
-      alert("Free plan users can preview all styles, but PDF downloads are restricted to the Classic theme. Upgrade to Pro ($4.99/mo) for Modern & Jazz PDF downloads.");
+      alert("Free plan users can preview all styles, but PDF downloads are restricted to the Classic theme. Upgrade to Pro ($8.99/mo) for Modern & Jazz PDF downloads.");
       setPdfTheme('classic');
       return;
     }
@@ -1476,11 +1476,11 @@ export default function App() {
               
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <SignedOut>
-                  <SignInButton mode="modal">
+                  <SignUpButton mode="modal">
                     <button type="button" style={{ padding: '6px 12px', backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold', fontFamily: "'Cal Sans', sans-serif", whiteSpace: 'nowrap' }}>
-                      Sign In
+                      Sign Up
                     </button>
-                  </SignInButton>
+                  </SignUpButton>
                 </SignedOut>
 
                 <SignedIn>
@@ -2073,13 +2073,13 @@ export default function App() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
                 <div style={{ border: '2px solid #2563eb', borderRadius: '12px', padding: '16px', backgroundColor: '#eff6ff', position: 'relative' }}>
                   <span style={{ position: 'absolute', top: '-10px', right: '14px', backgroundColor: '#2563eb', color: '#ffffff', fontSize: '10px', fontWeight: 'bold', padding: '2px 8px', borderRadius: '10px' }}>
-                    SAVE 33%
+                    SAVE 30%
                   </span>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '4px' }}>
                     <span style={{ fontWeight: 'bold', color: '#0f172a', fontSize: '15px' }}>Annual Billing</span>
-                    <span style={{ fontSize: '20px', fontWeight: '800', color: '#2563eb' }}>$39.99<span style={{ fontSize: '12px', color: '#64748b', fontWeight: 'normal' }}>/yr</span></span>
+                    <span style={{ fontSize: '20px', fontWeight: '800', color: '#2563eb' }}>$74.99<span style={{ fontSize: '12px', color: '#64748b', fontWeight: 'normal' }}>/yr</span></span>
                   </div>
-                  <p style={{ fontSize: '11px', color: '#64748b', marginBottom: '12px' }}>Billed as $39.99/year upfront (~$3.33/mo).</p>
+                  <p style={{ fontSize: '11px', color: '#64748b', marginBottom: '12px' }}>Billed as $74.99/year upfront (~$6.25/mo).</p>
                   <button
                     type="button"
                     onClick={handleUpgradeAnnual}
@@ -2092,7 +2092,7 @@ export default function App() {
                 <div style={{ border: '1px solid #e2e8f0', borderRadius: '12px', padding: '16px', backgroundColor: '#ffffff' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '4px' }}>
                     <span style={{ fontWeight: 'bold', color: '#0f172a', fontSize: '15px' }}>Monthly Billing</span>
-                    <span style={{ fontSize: '20px', fontWeight: 'bold', color: '#0f172a' }}>$4.99<span style={{ fontSize: '12px', color: '#64748b', fontWeight: 'normal' }}>/mo</span></span>
+                    <span style={{ fontSize: '20px', fontWeight: 'bold', color: '#0f172a' }}>$8.99<span style={{ fontSize: '12px', color: '#64748b', fontWeight: 'normal' }}>/mo</span></span>
                   </div>
                   <p style={{ fontSize: '11px', color: '#64748b', marginBottom: '12px' }}>Pay month-to-month. Cancel anytime.</p>
                   <button
