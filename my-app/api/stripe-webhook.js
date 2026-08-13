@@ -46,7 +46,7 @@ export default async function handler(req, res) {
     // Case 1: User was logged in during checkout
     if (userId) {
       await clerkClient.users.updateUserMetadata(userId, {
-        publicMetadata: { isPro: true }
+        publicMetadata: { isPro: true, stripeRole: 'pro' }
       });
       console.log(`Successfully upgraded logged-in user ${userId} to Pro.`);
     } 
@@ -60,13 +60,14 @@ export default async function handler(req, res) {
       if (usersList.data && usersList.data.length > 0) {
         const existingUser = usersList.data[0];
         await clerkClient.users.updateUserMetadata(existingUser.id, {
-          publicMetadata: { isPro: true }
+          publicMetadata: { isPro: true, stripeRole: 'pro' }
         });
         console.log(`Matched customer email ${customerEmail} to existing user ${existingUser.id}!`);
       } else {
-        console.log(`Payment received for ${customerEmail}, but no Clerk account exists yet.`);
+        console.log(`Payment received for ${customerEmail}, but no Clerk account exists yet. They will be synced via session_id on first sign-up.`);
       }
     }
+
   }
 
   return res.status(200).json({ received: true });

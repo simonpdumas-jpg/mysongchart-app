@@ -1,0 +1,8 @@
+# Git & Post-Task Workflow
+Whenever you finish making and verifying changes for any task:
+1. Provide a brief summary of the changes made.
+2. Ask me: "Would you like me to commit and push these changes to GitHub now?"
+3. When I approve (or reply with 'yes' / 'y'):
+   - Stage the relevant modified files using `git add`.
+   - Write a clear, concise Git commit message following standard conventions (e.g., `feat: ...` or `fix: ...`).
+   - Run `git push` to push the changes to GitHub.

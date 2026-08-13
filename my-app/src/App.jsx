@@ -3,6 +3,23 @@ import { DndContext, useDraggable, useDroppable, useSensor, useSensors, PointerS
 import html2pdf from 'html2pdf.js';
 import { SignedIn, SignedOut, SignUpButton, UserButton, useUser, useClerk } from '@clerk/clerk-react';
 
+// Reads a query param from the current URL without pulling in a router library.
+const getQueryParam = (name) => {
+  if (typeof window === 'undefined') return null;
+  const params = new URLSearchParams(window.location.search);
+  return params.get(name);
+};
+
+// Strips a query param from the URL bar without reloading the page,
+// so refreshing the page doesn't re-trigger onboarding logic.
+const removeQueryParam = (name) => {
+  if (typeof window === 'undefined') return;
+  const url = new URL(window.location.href);
+  url.searchParams.delete(name);
+  window.history.replaceState({}, '', url.toString());
+};
+
+
 // --- STRIPE CHECKOUT LINKS ---
 const STRIPE_MONTHLY_URL = "https://buy.stripe.com/9B628seba8FuaAIcKfbMQ05";
 const STRIPE_ANNUAL_URL = "https://buy.stripe.com/aFa3cwc326xm5go25BbMQ06";
@@ -760,7 +777,12 @@ const kbdStyle = (isLight) => ({
 
 export default function App() {
   const { user, isSignedIn } = useUser();
-  const { openSignUp } = useClerk();
+  const { openSignUp, openSignIn } = useClerk();
+
+  // Track whether we've detected a ?session_id= param from a Stripe redirect,
+  // so we know to auto-prompt sign-up and verify the purchase once authenticated.
+  const [pendingCheckoutSessionId, setPendingCheckoutSessionId] = useState(() => getQueryParam('session_id'));
+
 
   const [isLightMode, setIsLightMode] = useState(true);
   const [activeMobileTab, setActiveMobileTab] = useState('chart');
@@ -951,11 +973,43 @@ export default function App() {
     document.title = "MySongChart";
   }, []);
 
+  // Global Pro status check: unlocks all Pro features anywhere in the app the
+  // moment either legacy `isPro` or the new `stripeRole: 'pro'` flag is found
+  // on the Clerk user's publicMetadata.
+  const checkIsProFromMetadata = (metadata) => {
+    return !!(metadata?.isPro === true || metadata?.stripeRole === 'pro');
+  };
+
   useEffect(() => {
     if (user) {
-      if (user.publicMetadata?.isPro) {
+      if (checkIsProFromMetadata(user.publicMetadata)) {
         setIsPro(true);
+      } else if (pendingCheckoutSessionId) {
+        // New paid user just signed up after a Stripe redirect. Verify the
+        // checkout session server-side and mark them Pro immediately.
+        fetch('/api/sync-purchase', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId: user.id, sessionId: pendingCheckoutSessionId }),
+        })
+          .then((res) => res.json())
+          .then((data) => {
+            if (data.isPro) {
+              setIsPro(true);
+              user.reload?.();
+            } else {
+              setIsLightMode(true);
+            }
+          })
+          .catch((err) => console.error('Error verifying checkout session:', err))
+          .finally(() => {
+            removeQueryParam('session_id');
+            setPendingCheckoutSessionId(null);
+          });
       } else {
+        // Fallback: user is logged in but not marked Pro yet. Check if their
+        // email matches a past Stripe purchase (e.g. they paid before making
+        // an account, and the webhook couldn't find a Clerk user to match).
         const userEmail = user.primaryEmailAddress?.emailAddress;
         if (userEmail) {
           fetch('/api/sync-purchase', {
@@ -967,6 +1021,7 @@ export default function App() {
             .then((data) => {
               if (data.isPro) {
                 setIsPro(true);
+                user.reload?.();
               } else {
                 setIsLightMode(true);
               }
@@ -979,8 +1034,14 @@ export default function App() {
     } else {
       setIsPro(false);
       setIsLightMode(true);
+      // Not signed in yet but arrived with a session_id (fresh Stripe redirect).
+      // Auto-open the Sign Up modal so they can create an account to claim Pro.
+      if (pendingCheckoutSessionId) {
+        openSignUp();
+      }
     }
-  }, [user]);
+  }, [user, pendingCheckoutSessionId]);
+
 
   useEffect(() => {
     if (!isPro) {
@@ -2071,6 +2132,25 @@ export default function App() {
               </p>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                <button
+                  type="button"
+                  onClick={() => { setShowUpgradeModal(false); openSignIn(); }}
+                  style={{
+                    width: '100%',
+                    padding: '8px',
+                    backgroundColor: 'transparent',
+                    color: '#2563eb',
+                    border: 'none',
+                    fontSize: '12px',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                    fontFamily: "'Cal Sans', sans-serif",
+                    textAlign: 'center',
+                  }}
+                >
+                  Already a Pro subscriber? Sign In
+                </button>
+
                 <div style={{ border: '2px solid #2563eb', borderRadius: '12px', padding: '16px', backgroundColor: '#eff6ff', position: 'relative' }}>
                   <span style={{ position: 'absolute', top: '-10px', right: '14px', backgroundColor: '#2563eb', color: '#ffffff', fontSize: '10px', fontWeight: 'bold', padding: '2px 8px', borderRadius: '10px' }}>
                     SAVE 30%

@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { DndContext, useDraggable, useDroppable } from '@dnd-kit/core';
+import { DndContext, useDraggable, useDroppable, useSensor, useSensors, PointerSensor, TouchSensor } from '@dnd-kit/core';
 import html2pdf from 'html2pdf.js';
 import { SignedIn, SignedOut, SignInButton, UserButton, useUser, useClerk } from '@clerk/clerk-react';
 
@@ -48,6 +48,12 @@ const globalStyles = `
     color: #9ca3af;
     opacity: 0.8;
   }
+  .floating-action-btn {
+    transition: background-color 0.2s;
+  }
+  .floating-action-btn:hover:not(:disabled) {
+    background-color: rgba(120, 120, 120, 0.2) !important;
+  }
 
   /* Diagonal Background Watermark for Free Tier Export */
   .watermark-overlay {
@@ -78,34 +84,71 @@ const globalStyles = `
     position: relative;
     z-index: 10;
   }
+
+  @media (max-width: 767px) {
+    .app-container {
+      flex-direction: column !important;
+    }
+    .mobile-tab-bar {
+      display: flex !important;
+    }
+    .mobile-hide {
+      display: none !important;
+    }
+    .mobile-show-active {
+      display: flex !important;
+      flex-direction: column !important;
+      width: 100% !important;
+      height: calc(100vh - 48px) !important;
+      flex: 1 !important;
+    }
+    .column-center {
+      padding: 20px !important;
+    }
+    .mobile-resizer {
+      display: none !important;
+    }
+  }
 `;
 
 // --- THEME ENGINE ---
 const getStyles = (isLight, pdfTheme) => {
   let canvasFont = "'Cal Sans', sans-serif";
   let titleFont = "'Cal Sans', sans-serif";
+  let spacingStyle = {};
 
-  if (pdfTheme === 'classic') {
-    canvasFont = "'Georgia', 'Times New Roman', Times, serif";
-    titleFont = "'Georgia', 'Times New Roman', Times, serif";
-  } else if (pdfTheme === 'jazz') {
-    canvasFont = "'Permanent Marker', cursive";
-    titleFont = "'Permanent Marker', cursive";
-  } else if (pdfTheme === 'modern') {
+  if (pdfTheme === 'classic-studio') {
+    canvasFont = "'Roboto Mono', 'Courier New', Courier, monospace";
+    titleFont = "'Roboto Mono', 'Courier New', Courier, monospace";
+  } else if (pdfTheme === 'real-book') {
+    canvasFont = "'Architects Daughter', 'Caveat', cursive";
+    titleFont = "'Architects Daughter', 'Caveat', cursive";
+  } else if (pdfTheme === 'elegance') {
+    canvasFont = "'Lora', serif";
+    titleFont = "'Lora', serif";
+  } else if (pdfTheme === 'minimalist') {
+    canvasFont = "'Jost', sans-serif";
+    titleFont = "'Jost', sans-serif";
+    spacingStyle = {
+      marginRight: '6px',
+      marginBottom: '4px',
+    };
+  } else {
+    // default: modern
     canvasFont = "'Cal Sans', sans-serif";
     titleFont = "'Cal Sans', sans-serif";
   }
 
   return {
     container: { display: 'flex', height: '100vh', fontFamily: "'Cal Sans', sans-serif", backgroundColor: isLight ? '#f3f4f6' : '#18181b', color: isLight ? '#1f2937' : '#e4e4e7', transition: 'all 0.3s' },
-    columnLeft: { padding: '24px', borderRight: `1px solid ${isLight ? '#e5e7eb' : '#27272a'}`, display: 'flex', flexDirection: 'column', backgroundColor: isLight ? '#ffffff' : '#18181b', overflowY: 'auto' },
-    columnCenter: { flex: 1, padding: '40px', overflowY: 'auto', backgroundColor: isLight ? '#ffffff' : '#09090b', fontFamily: canvasFont },
+    columnLeft: { padding: '24px', borderRight: `1px solid ${isLight ? '#e5e7eb' : '#27272a'}`, display: 'flex', flexDirection: 'column', height: '100vh', boxSizing: 'border-box', backgroundColor: isLight ? '#ffffff' : '#18181b', overflowY: 'auto' },
+    columnCenter: { flex: 1, padding: '40px', overflowY: 'auto', backgroundColor: isLight ? '#ffffff' : '#09090b', fontFamily: canvasFont, position: 'relative' },
     columnRight: { padding: '24px', borderLeft: `1px solid ${isLight ? '#e5e7eb' : '#27272a'}`, backgroundColor: isLight ? '#ffffff' : '#18181b', overflowY: 'auto' },
     header: { marginTop: 0, fontSize: '20px', fontWeight: '600', color: isLight ? '#111827' : '#f4f4f5', letterSpacing: '-0.5px', marginBottom: '16px', fontFamily: "'Cal Sans', sans-serif" },
     subHeader: { fontSize: '14px', fontWeight: '600', color: isLight ? '#6b7280' : '#a1a1aa', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px', marginTop: '16px', fontFamily: "'Cal Sans', sans-serif" },
     label: { fontSize: '13px', color: isLight ? '#4b5563' : '#a1a1aa', marginBottom: '4px', display: 'block', fontWeight: '500', fontFamily: "'Cal Sans', sans-serif", textWrap: 'balance' },
     input: { width: '100%', boxSizing: 'border-box', marginBottom: '10px', padding: '10px', borderRadius: '6px', border: `1px solid ${isLight ? '#d1d5db' : '#3f3f46'}`, backgroundColor: isLight ? '#f9fafb' : '#27272a', color: isLight ? '#111827' : '#f4f4f5', fontSize: '14px', fontFamily: "'Cal Sans', sans-serif" },
-    textArea: { width: '100%', boxSizing: 'border-box', minHeight: '160px', marginBottom: '16px', padding: '12px', borderRadius: '6px', border: `1px solid ${isLight ? '#d1d5db' : '#3f3f46'}`, backgroundColor: isLight ? '#f9fafb' : '#27272a', color: isLight ? '#111827' : '#f4f4f5', fontSize: '14px', resize: 'vertical', lineHeight: '1.5', fontFamily: "'Courier New', Courier, monospace" },
+    textArea: { width: '100%', boxSizing: 'border-box', display: 'block', marginTop: '0px', minHeight: '160px', height: '200px', maxHeight: 'none', marginBottom: '16px', padding: '12px', borderRadius: '6px', border: `1px solid ${isLight ? '#d1d5db' : '#3f3f46'}`, backgroundColor: isLight ? '#f9fafb' : '#27272a', color: isLight ? '#111827' : '#f4f4f5', fontSize: '14px', resize: 'vertical', lineHeight: '1.5', fontFamily: "'Courier New', Courier, monospace" },
     button: { width: '100%', padding: '12px', backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '14px', fontWeight: '600', fontFamily: "'Cal Sans', sans-serif" },
     actionButton: { padding: '8px 12px', whiteSpace: 'nowrap', backgroundColor: isLight ? '#ffffff' : '#27272a', color: isLight ? '#374151' : '#e4e4e7', border: `1px solid ${isLight ? '#d1d5db' : '#3f3f46'}`, borderRadius: '6px', cursor: 'pointer', fontSize: '13px', fontWeight: '600', transition: 'all 0.2s', fontFamily: "'Cal Sans', sans-serif" },
     builderRow: { display: 'flex', gap: '4px', marginBottom: '8px', flexWrap: 'wrap' },
@@ -113,11 +156,11 @@ const getStyles = (isLight, pdfTheme) => {
     miniBtnInactive: { flex: 1, minWidth: '32px', padding: '8px 4px', backgroundColor: isLight ? '#f9fafb' : '#27272a', color: isLight ? '#4b5563' : '#a1a1aa', border: `1px solid ${isLight ? '#d1d5db' : '#3f3f46'}`, borderRadius: '4px', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold', fontFamily: "'Cal Sans', sans-serif" },
     addBtn: { padding: '8px 12px', backgroundColor: '#10b981', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '13px', fontWeight: 'bold', width: '100%', fontFamily: "'Cal Sans', sans-serif" },
     chordToken: { display: 'inline-flex', alignItems: 'center', padding: '6px 10px', margin: '4px', backgroundColor: '#2563eb', color: 'white', borderRadius: '6px', cursor: 'grab', fontWeight: 'bold', fontSize: '14px', userSelect: 'none', gap: '6px', fontFamily: "'Cal Sans', sans-serif" },
-    lyricLine: { display: 'flex', flexWrap: 'wrap', width: '100%', marginBottom: '8px', pageBreakInside: 'avoid', breakInside: 'avoid' },
-    canvasWord: { display: 'inline-flex', flexDirection: 'column', margin: '0 10px 0 0', minWidth: '20px', cursor: 'pointer', pageBreakInside: 'avoid', breakInside: 'avoid' },
-    dropZone: { height: '26px', width: '100%', minWidth: '20px', borderRadius: '4px', display: 'flex', justifyContent: 'flex-start', alignItems: 'center', marginBottom: '2px', transition: 'all 0.1s' },
-    wordText: { fontSize: '14px', color: isLight ? '#111827' : '#e4e4e7', whiteSpace: 'pre', fontFamily: canvasFont },
-    songTitleStyle: { margin: '0 auto 4px auto', fontSize: '32px', lineHeight: '1.15', textAlign: 'center', color: isLight ? '#111827' : '#f4f4f5', fontFamily: titleFont, fontWeight: 'bold', maxWidth: '600px', textWrap: 'balance' },
+    lyricLine: { display: 'flex', flexWrap: 'wrap', width: '100%', marginBottom: pdfTheme === 'minimalist' ? '4px' : '8px', pageBreakInside: 'avoid', breakInside: 'avoid' },
+    canvasWord: { display: 'inline-flex', flexDirection: 'column', margin: pdfTheme === 'minimalist' ? '0 6px 0 0' : '0 10px 0 0', minWidth: '20px', cursor: 'pointer', pageBreakInside: 'avoid', breakInside: 'avoid', ...spacingStyle },
+    dropZone: { height: pdfTheme === 'minimalist' ? '22px' : '26px', width: '100%', minWidth: '20px', borderRadius: '4px', display: 'flex', justifyContent: 'flex-start', alignItems: 'center', marginBottom: '2px', transition: 'all 0.1s' },
+    wordText: { fontSize: pdfTheme === 'minimalist' ? '12px' : '14px', color: isLight ? '#111827' : '#e4e4e7', whiteSpace: 'pre', fontFamily: canvasFont, fontWeight: 400 },
+    songTitleStyle: { margin: '0 auto 4px auto', fontSize: '32px', lineHeight: '1.15', textAlign: 'center', color: isLight ? '#111827' : '#f4f4f5', fontFamily: titleFont, fontWeight: 700, maxWidth: '600px', textWrap: 'balance' },
   };
 };
 
@@ -142,19 +185,186 @@ const transposeString = (chord, steps) => {
   });
 };
 
-const formatChordDisplay = (originalChord, currentKey, transSteps, format) => {
-  if (!originalChord) return originalChord;
-
-  if (format === 'letters') {
-    return transposeString(originalChord, transSteps);
+const transposeStoredChord = (chord, steps) => {
+  if (!chord || steps === 0) return chord;
+  const { root, suffix, slash } = parseChordInputString(chord);
+  
+  const transposedRoot = transposeString(root, steps);
+  let transposedSlash = '';
+  if (slash && slash !== '/') {
+    const slashRoot = parseSlashRoot(slash);
+    transposedSlash = '/' + transposeString(slashRoot, steps);
+  } else if (slash === '/') {
+    transposedSlash = '/';
   }
+
+  return transposedRoot + suffix + transposedSlash;
+};
+
+const getSemitoneDifference = (oldKey, newKey) => {
+  if (!oldKey || !newKey) return 0;
+  
+  const cleanOld = oldKey.trim().replace(/m$/, '');
+  const cleanNew = newKey.trim().replace(/m$/, '');
+
+  const sharps = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+  const flats = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B'];
+
+  let oldIdx = sharps.indexOf(cleanOld);
+  if (oldIdx === -1) oldIdx = flats.indexOf(cleanOld);
+
+  let newIdx = sharps.indexOf(cleanNew);
+  if (newIdx === -1) newIdx = flats.indexOf(cleanNew);
+
+  if (oldIdx === -1 || newIdx === -1) return 0;
+
+  let diff = (newIdx - oldIdx) % 12;
+  if (diff < -6) diff += 12;
+  if (diff > 6) diff -= 12;
+  return diff;
+};
+
+const parseChordInputString = (inputStr) => {
+  if (!inputStr) return { root: '', suffix: '', slash: '' };
+
+  // Break into main part and optional slash bass part
+  let mainPart = inputStr;
+  let slash = '';
+  const slashIdx = inputStr.indexOf('/');
+  if (slashIdx !== -1) {
+    mainPart = inputStr.substring(0, slashIdx);
+    slash = inputStr.substring(slashIdx); // e.g. "/B"
+  }
+
+  // Extract root note / degree from mainPart
+  let root = '';
+  let suffix = '';
+
+  // 1. Try Roman Numerals (e.g., biii, bii, #iv, etc.)
+  const romanMatch = mainPart.match(/^([b#]?(?:iii|III|ii|II|iv|IV|vii|VII|vi|VI|v|V|i|I))/);
+  if (romanMatch) {
+    root = romanMatch[1];
+    suffix = mainPart.substring(root.length);
+  } else {
+    // 2. Try Solfège (case-insensitive)
+    const solfegeMatch = mainPart.match(/^(Sol|Do|Ra|Re|Me|Mi|Fa|Se|Le|La|Te|Ti)/i);
+    if (solfegeMatch) {
+      root = solfegeMatch[1];
+      suffix = mainPart.substring(root.length);
+    } else {
+      // 3. Try Numbers
+      const numbersMatch = mainPart.match(/^([b#]?[1-7])/);
+      if (numbersMatch) {
+        root = numbersMatch[1];
+        suffix = mainPart.substring(root.length);
+      } else {
+        // 4. Try Letters
+        const letterMatch = mainPart.match(/^([A-G][#b]?)/);
+        if (letterMatch) {
+          root = letterMatch[1];
+          suffix = mainPart.substring(root.length);
+        } else {
+          // Fallback if no match
+          root = mainPart;
+          suffix = '';
+        }
+      }
+    }
+  }
+
+  // Normalize suffix
+  let normalizedSuffix = suffix;
+  if (normalizedSuffix === 'M7' || normalizedSuffix === 'MAJ7') {
+    normalizedSuffix = 'maj7';
+  } else if (normalizedSuffix === 'min7') {
+    normalizedSuffix = 'm7';
+  } else if (normalizedSuffix === 'sus') {
+    normalizedSuffix = 'sus4';
+  }
+
+  return { root, suffix: normalizedSuffix, slash };
+};
+
+const parseSlashRoot = (slashStr) => {
+  if (!slashStr || slashStr === '/') return '';
+  return slashStr.startsWith('/') ? slashStr.substring(1) : slashStr;
+};
+
+const convertRootToStandardLetter = (rootStr, currentKey, transSteps) => {
+  if (!rootStr) return { note: '', isMinorRoman: false };
+
+  const sharps = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+  const flats = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B'];
 
   let cleanKey = (currentKey || 'G').trim();
   let isMinorKey = cleanKey.endsWith('m');
   let keyRoot = cleanKey.replace(/m$/, '');
 
+  let rootIndex = sharps.indexOf(keyRoot);
+  if (rootIndex === -1) rootIndex = flats.indexOf(keyRoot);
+  if (rootIndex === -1) rootIndex = 0;
+
+  let calcIndex = rootIndex;
+  if (isMinorKey) {
+    calcIndex = (rootIndex + 3) % 12;
+  }
+
+  const useFlats = ['F', 'Bb', 'Eb', 'Ab', 'Db', 'Gb', 'Dm', 'Gm', 'Cm', 'Fm', 'Bbm'].includes(cleanKey);
+  const scale = useFlats ? flats : sharps;
+  const getNoteFromIndex = (idx) => scale[(idx + 12) % 12];
+
+  // 1. Try Roman
+  const romanMap = {
+    'i': 0, 'bii': 1, '#i': 1, 'ii': 2, 'biii': 3, '#ii': 3, 'iii': 4, 'iv': 5, '#iv': 6, 'bv': 6, 'v': 7, 'bvi': 8, '#v': 8, 'vi': 9, 'bvii': 10, '#vi': 10, 'vii': 11
+  };
+  const lowerRoot = rootStr.toLowerCase();
+  if (romanMap[lowerRoot] !== undefined) {
+    const interval = romanMap[lowerRoot];
+    let noteIndex = (rootIndex + interval) % 12;
+    let standardLetter = getNoteFromIndex(noteIndex);
+    return { note: standardLetter, isMinorRoman: rootStr === lowerRoot };
+  }
+
+  // 2. Try Solfege
+  const solfegeMap = {
+    'do': 0, 'ra': 1, 're': 2, 'me': 3, 'mi': 4, 'fa': 5, 'se': 6, 'sol': 7, 'le': 8, 'la': 9, 'te': 10, 'ti': 11
+  };
+  if (solfegeMap[lowerRoot] !== undefined) {
+    const interval = solfegeMap[lowerRoot];
+    let noteIndex = (calcIndex + interval) % 12;
+    return { note: getNoteFromIndex(noteIndex), isMinorRoman: false };
+  }
+
+  // 3. Try Numbers
+  const numbersMap = {
+    '1': 0, '#1': 1, 'b2': 1, '2': 2, '#2': 3, 'b3': 3, '3': 4, '4': 5, '#4': 6, 'b5': 6, '5': 7, '#5': 8, 'b6': 8, '6': 9, '#6': 10, 'b7': 10, '7': 11
+  };
+  if (numbersMap[rootStr] !== undefined) {
+    const interval = numbersMap[rootStr];
+    let noteIndex = (calcIndex + interval) % 12;
+    return { note: getNoteFromIndex(noteIndex), isMinorRoman: false };
+  }
+
+  // 4. Try Letters
+  let noteIndex = sharps.indexOf(rootStr);
+  if (noteIndex === -1) noteIndex = flats.indexOf(rootStr);
+  if (noteIndex !== -1) {
+    let untransposedIndex = (noteIndex - transSteps + 12) % 12;
+    return { note: getNoteFromIndex(untransposedIndex), isMinorRoman: false };
+  }
+
+  return { note: rootStr, isMinorRoman: false };
+};
+
+const formatRootDisplay = (root, currentKey, format, suffix) => {
+  if (!root) return '';
+
   const sharps = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
   const flats = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B'];
+
+  let cleanKey = (currentKey || 'G').trim();
+  let isMinorKey = cleanKey.endsWith('m');
+  let keyRoot = cleanKey.replace(/m$/, '');
 
   let rootIndex = sharps.indexOf(keyRoot);
   if (rootIndex === -1) rootIndex = flats.indexOf(keyRoot);
@@ -168,38 +378,93 @@ const formatChordDisplay = (originalChord, currentKey, transSteps, format) => {
   const numbers = ['1', 'b2', '2', 'b3', '3', '4', 'b5', '5', 'b6', '6', 'b7', '7'];
   const solfege = ['Do', 'Ra', 'Re', 'Me', 'Mi', 'Fa', 'Se', 'Sol', 'Le', 'La', 'Te', 'Ti'];
 
-  return originalChord.replace(/([A-G][#b]?)(.*)/, (match, root, qualities) => {
-    let noteIndex = sharps.indexOf(root);
-    if (noteIndex === -1) noteIndex = flats.indexOf(root);
-    if (noteIndex === -1) return match;
+  let noteIndex = sharps.indexOf(root);
+  if (noteIndex === -1) noteIndex = flats.indexOf(root);
+  if (noteIndex === -1) return root;
 
-    let isMinorChord = qualities.startsWith('m') && !qualities.startsWith('maj');
-    let isDim = qualities.startsWith('dim');
+  let isMinorChord = suffix && suffix.startsWith('m') && !suffix.startsWith('maj');
+  let isDim = suffix && suffix.startsWith('dim');
 
-    if (format === 'roman') {
-      let interval = (noteIndex - rootIndex + 12) % 12;
-      let base = '';
-      
-      if (isMinorKey) {
-        const minMap = {0: 'I', 1: 'bII', 2: 'II', 3: 'III', 4: '#III', 5: 'IV', 6: 'bV', 7: 'V', 8: 'VI', 9: '#VI', 10: 'VII', 11: '#VII'};
-        base = minMap[interval];
-      } else {
-        const majMap = {0: 'I', 1: 'bII', 2: 'II', 3: 'bIII', 4: 'III', 5: 'IV', 6: 'bV', 7: 'V', 8: 'bVI', 9: 'VI', 10: 'bVII', 11: 'VII'};
-        base = majMap[interval];
-      }
-
-      if (isMinorChord || isDim) {
-        base = base.toLowerCase();
-        if (isMinorChord) qualities = qualities.substring(1); 
-      }
-      
-      return base + qualities;
+  if (format === 'roman') {
+    let interval = (noteIndex - rootIndex + 12) % 12;
+    let base = '';
+    
+    if (isMinorKey) {
+      const minMap = {0: 'I', 1: 'bII', 2: 'II', 3: 'III', 4: '#III', 5: 'IV', 6: 'bV', 7: 'V', 8: 'VI', 9: '#VI', 10: 'VII', 11: '#VII'};
+      base = minMap[interval];
     } else {
-      let interval = (noteIndex - calcIndex + 12) % 12;
-      let arr = format === 'numbers' ? numbers : solfege;
-      return arr[interval] + qualities;
+      const majMap = {0: 'I', 1: 'bII', 2: 'II', 3: 'bIII', 4: 'III', 5: 'IV', 6: 'bV', 7: 'V', 8: 'bVI', 9: 'VI', 10: 'bVII', 11: 'VII'};
+      base = majMap[interval];
     }
-  });
+
+    if (isMinorChord || isDim) {
+      base = base.toLowerCase();
+    }
+    
+    return base;
+  } else {
+    let interval = (noteIndex - calcIndex + 12) % 12;
+    let arr = format === 'numbers' ? numbers : solfege;
+    return arr[interval];
+  }
+};
+
+const formatChordDisplay = (originalChord, currentKey, transSteps, format) => {
+  if (!originalChord) return originalChord;
+
+  if (format === 'letters') {
+    return transposeString(originalChord, transSteps);
+  }
+
+  const { root, suffix, slash } = parseChordInputString(originalChord);
+
+  let displayRoot = formatRootDisplay(root, currentKey, format, suffix);
+  let displaySuffix = suffix;
+
+  if (format === 'roman') {
+    let isMinorChord = suffix.startsWith('m') && !suffix.startsWith('maj');
+    if (isMinorChord) {
+      displaySuffix = suffix.substring(1);
+    }
+  }
+
+  let displaySlash = '';
+  if (slash && slash !== '/') {
+    const slashRoot = parseSlashRoot(slash);
+    const formattedSlashRoot = formatRootDisplay(slashRoot, currentKey, format, '');
+    displaySlash = '/' + formattedSlashRoot;
+  } else if (slash === '/') {
+    displaySlash = '/';
+  }
+
+  return displayRoot + displaySuffix + displaySlash;
+};
+
+const parseChordStringToStandardLetter = (inputStr, currentKey, transSteps, _currentFormat) => {
+  if (!inputStr) return inputStr;
+
+  const { root, suffix, slash } = parseChordInputString(inputStr);
+
+  const parsedRoot = convertRootToStandardLetter(root, currentKey, transSteps);
+  let mainNote = parsedRoot.note;
+  let finalSuffix = suffix;
+
+  if (parsedRoot.isMinorRoman) {
+    if (!finalSuffix.startsWith('m') && !finalSuffix.startsWith('dim') && !finalSuffix.startsWith('maj')) {
+      finalSuffix = 'm' + finalSuffix;
+    }
+  }
+
+  let finalSlash = '';
+  if (slash && slash !== '/') {
+    const slashRoot = parseSlashRoot(slash);
+    const parsedSlash = convertRootToStandardLetter(slashRoot, currentKey, transSteps);
+    finalSlash = '/' + parsedSlash.note;
+  } else if (slash === '/') {
+    finalSlash = '/';
+  }
+
+  return mainNote + finalSuffix + finalSlash;
 };
 
 const getScaleChords = (keyInput) => {
@@ -236,13 +501,13 @@ const getScaleChords = (keyInput) => {
 const generateChordProText = ({ songTitle, artist, composer, songKey, capo, transSteps, displayFormat, lyricLines, chordMap }) => {
   let output = [];
 
-  if (songTitle) output.push(`{title: ${songTitle}}`);
-  if (artist) output.push(`{artist: ${artist}}`);
-  if (composer) output.push(`{composer: ${composer}}`);
+  if (songTitle && songTitle.trim() !== '') output.push(`{title: ${songTitle.trim()}}`);
+  if (artist && artist.trim() !== '') output.push(`{artist: ${artist.trim()}}`);
+  if (composer && composer.trim() !== '') output.push(`{composer: ${composer.trim()}}`);
   
   const activeKey = transposeString(songKey || "G", transSteps);
-  if (activeKey) output.push(`{key: ${activeKey}}`);
-  if (capo && capo !== "0") output.push(`{capo: ${capo}}`);
+  if (activeKey && activeKey.trim() !== '') output.push(`{key: ${activeKey.trim()}}`);
+  if (capo && capo !== "0" && capo.trim() !== '') output.push(`{capo: ${capo.trim()}}`);
   
   output.push('');
 
@@ -252,20 +517,39 @@ const generateChordProText = ({ songTitle, artist, composer, songKey, capo, tran
     } else if (line.isHeader) {
       output.push(`{comment: ${line.text}}`);
     } else if (line.words && line.words.length > 0) {
-      let lineText = '';
-      line.words.forEach(w => {
-        const originalChord = chordMap[w.id];
-        const displayChord = formatChordDisplay(originalChord, songKey, transSteps, displayFormat);
-        
-        if (displayChord) {
-          lineText += `[${displayChord}]`;
+      // Check if this line is purely beat spaces (e.g. only contains empty beat spaces '_' or chords)
+      const hasActualLyrics = line.words.some(w => w.text !== '_');
+
+      if (!hasActualLyrics) {
+        // Standalone chord line: write as space-separated bracketed chords
+        let standaloneParts = [];
+        line.words.forEach(w => {
+          const originalChord = chordMap[w.id];
+          const displayChord = formatChordDisplay(originalChord, songKey, transSteps, displayFormat);
+          if (displayChord) {
+            standaloneParts.push(`[${displayChord}]`);
+          }
+        });
+        if (standaloneParts.length > 0) {
+          output.push(standaloneParts.join(' '));
         }
-        
-        if (w.text !== '_') {
-          lineText += w.text + ' ';
-        }
-      });
-      output.push(lineText.trimEnd());
+      } else {
+        // Standard inline chord formatting: [G]Words go [C]here
+        let lineText = '';
+        line.words.forEach(w => {
+          const originalChord = chordMap[w.id];
+          const displayChord = formatChordDisplay(originalChord, songKey, transSteps, displayFormat);
+          
+          if (displayChord) {
+            lineText += `[${displayChord}]`;
+          }
+          
+          if (w.text !== '_') {
+            lineText += w.text + ' ';
+          }
+        });
+        output.push(lineText.trimEnd());
+      }
     }
   });
 
@@ -293,20 +577,21 @@ function DraggableChord({ id, text, baseText, onDelete, isCustom }) {
   );
 }
 
-function DraggableCanvasChord({ wordId, text, isLight, pdfTheme, onFocus }) {
+function DraggableCanvasChord({ wordId, text, isLight, pdfTheme, onFocus, chordAccentColor, isPro }) {
   const { attributes, listeners, setNodeRef, transform } = useDraggable({
     id: `canvas-${wordId}`,
     data: { type: 'canvas', sourceWordId: wordId }
   });
   const style = transform ? { transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`, zIndex: 100, cursor: 'grabbing', opacity: 0.8 } : undefined;
   
-  let chordColor = '#1e3a8a';
-  if (pdfTheme === 'classic') chordColor = isLight ? '#000000' : '#ffffff';
-  if (pdfTheme === 'jazz') chordColor = '#000000'; 
+  // Free users default to #111827 (Black/Onyx). Pro users use selected chordAccentColor (defaults to #111827).
+  let chordColor = isPro ? chordAccentColor : '#111827';
 
   let fontStyle = "'Cal Sans', sans-serif";
-  if (pdfTheme === 'jazz') fontStyle = "'Permanent Marker', cursive";
-  if (pdfTheme === 'classic') fontStyle = "'Georgia', 'Times New Roman', Times, serif";
+  if (pdfTheme === 'classic-studio') fontStyle = "'Roboto Mono', 'Courier New', Courier, monospace";
+  if (pdfTheme === 'real-book') fontStyle = "'Architects Daughter', 'Caveat', cursive";
+  if (pdfTheme === 'elegance') fontStyle = "'Lora', serif";
+  if (pdfTheme === 'minimalist') fontStyle = "'Jost', sans-serif";
 
   return (
     <div 
@@ -317,33 +602,145 @@ function DraggableCanvasChord({ wordId, text, isLight, pdfTheme, onFocus }) {
         onFocus(wordId);
         if (listeners?.onPointerDown) listeners.onPointerDown(e);
       }}
-      style={{ ...style, color: chordColor, fontSize: '15px', fontWeight: 'bold', fontFamily: fontStyle }}
+      style={{ ...style, color: chordColor, fontSize: '15px', fontWeight: 700, fontFamily: fontStyle }}
     >
       {text}
     </div>
   );
 }
 
-function DroppableWord({ id, word, assignedChord, isLight, pdfTheme, isFocused, onFocus }) {
+function DroppableWord({ id, word, assignedChord, isLight, pdfTheme, isFocused, isSelected, onFocus, isBold, chordAccentColor, isPro }) {
   const { isOver, setNodeRef } = useDroppable({ id });
   const styles = getStyles(isLight, pdfTheme);
   const isEmptyBeat = word === '_';
 
+  const highlight = isOver || isFocused || isSelected;
+  const activeBg = isFocused || isSelected;
+
   const dropZoneStyle = {
     ...styles.dropZone,
-    border: `2px dashed ${(isOver || isFocused) ? '#3b82f6' : (isLight ? '#d1d5db' : '#3f3f46')}`,
-    backgroundColor: isOver ? (isLight ? '#f3f4f6' : '#27272a') : (isFocused ? (isLight ? '#e0f2fe' : '#1e3a8a') : 'transparent'),
-    boxShadow: isFocused ? '0 0 0 2px rgba(59, 130, 246, 0.4)' : 'none'
+    border: `2px ${isSelected ? 'solid' : 'dashed'} ${highlight ? '#3b82f6' : (isLight ? '#d1d5db' : '#3f3f46')}`,
+    backgroundColor: isOver ? (isLight ? '#f3f4f6' : '#27272a') : (activeBg ? (isLight ? '#e0f2fe' : '#1e3a8a') : 'transparent'),
+    boxShadow: activeBg ? '0 0 0 2px rgba(59, 130, 246, 0.4)' : 'none'
+  };
+
+  const inputRef = useRef(null);
+
+  useEffect(() => {
+    if (isFocused && inputRef.current) {
+      inputRef.current.focus();
+    }
+  }, [isFocused]);
+
+  const handleInputChange = (e) => {
+    const val = e.target.value;
+    
+    if (val === '') {
+      // Backspace pressed
+      const event = new KeyboardEvent('keydown', {
+        key: 'Backspace',
+        bubbles: true,
+        cancelable: true
+      });
+      window.dispatchEvent(event);
+    } else if (val === '  ') {
+      // Space pressed
+      const event = new KeyboardEvent('keydown', {
+        key: ' ',
+        bubbles: true,
+        cancelable: true
+      });
+      window.dispatchEvent(event);
+    } else if (val.length > 1) {
+      const char = val.slice(1);
+      if (/^[a-zA-Z0-9#/+\-()]$/.test(char)) {
+        const event = new KeyboardEvent('keydown', {
+          key: char,
+          bubbles: true,
+          cancelable: true
+        });
+        window.dispatchEvent(event);
+      } else if (char === '\n') {
+        const event = new KeyboardEvent('keydown', {
+          key: 'Enter',
+          bubbles: true,
+          cancelable: true
+        });
+        window.dispatchEvent(event);
+      }
+    }
+    
+    if (inputRef.current) {
+      inputRef.current.value = ' ';
+    }
+  };
+
+  const handleInputKeyDown = (e) => {
+    // If we type some standard special non-character key that isn't handled by onChange,
+    // like Enter or Escape, we can let them bubble, but just to be safe, we can handle them
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      const event = new KeyboardEvent('keydown', {
+        key: 'Enter',
+        bubbles: true,
+        cancelable: true
+      });
+      window.dispatchEvent(event);
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      const event = new KeyboardEvent('keydown', {
+        key: 'Escape',
+        bubbles: true,
+        cancelable: true
+      });
+      window.dispatchEvent(event);
+    }
   };
 
   return (
-    <div className="canvas-word avoid-break" style={styles.canvasWord} onClick={(e) => { e.stopPropagation(); onFocus(id); }}>
+    <div className="canvas-word avoid-break" style={{ ...styles.canvasWord, position: 'relative' }} onClick={(e) => { e.stopPropagation(); onFocus(id); }}>
+      {isFocused && (
+        <input
+          ref={inputRef}
+          type="text"
+          defaultValue=" "
+          onChange={handleInputChange}
+          onKeyDown={handleInputKeyDown}
+          autoCapitalize="none"
+          autoCorrect="off"
+          autoComplete="off"
+          spellCheck="false"
+          style={{
+            position: 'absolute',
+            opacity: 0,
+            left: 0,
+            top: 0,
+            width: '100%',
+            height: '100%',
+            padding: 0,
+            margin: 0,
+            border: 'none',
+            outline: 'none',
+            zIndex: 10,
+            cursor: 'pointer',
+            background: 'transparent'
+          }}
+        />
+      )}
       <div ref={setNodeRef} className="drop-zone" style={dropZoneStyle}>
         {assignedChord && (
-          <DraggableCanvasChord wordId={id} text={assignedChord} isLight={isLight} pdfTheme={pdfTheme} onFocus={onFocus} />
+          <DraggableCanvasChord 
+            wordId={id} 
+            text={assignedChord} 
+            isLight={isLight} 
+            pdfTheme={pdfTheme} 
+            onFocus={onFocus} 
+            chordAccentColor={chordAccentColor}
+            isPro={isPro}
+          />
         )}
       </div>
-      <div className="word-text" style={{...styles.wordText, color: isEmptyBeat ? 'transparent' : (isLight ? '#111827' : '#e4e4e7')}}>
+      <div className="word-text" style={{...styles.wordText, color: isEmptyBeat ? 'transparent' : (isLight ? '#111827' : '#e4e4e7'), fontWeight: isBold ? 'bold' : undefined}}>
         {isEmptyBeat ? '_' : word}
       </div>
     </div>
@@ -366,8 +763,21 @@ export default function App() {
   const { openSignIn } = useClerk();
 
   const [isLightMode, setIsLightMode] = useState(true);
+  const [activeMobileTab, setActiveMobileTab] = useState('chart');
+
+  const pointerSensor = useSensor(PointerSensor);
+  const touchSensor = useSensor(TouchSensor, {
+    activationConstraint: {
+      delay: 200,
+      tolerance: 6,
+    },
+  });
+  const sensors = useSensors(pointerSensor, touchSensor);
+
+  const [selectedWordIds, setSelectedWordIds] = useState([]);
   const [pdfTheme, setPdfTheme] = useState('modern');
   const [displayFormat, setDisplayFormat] = useState('letters');
+  const [chordAccentColor, setChordAccentColor] = useState('#111827');
   const [showPreview, setShowPreview] = useState(false);
   
   const [isPro, setIsPro] = useState(false);
@@ -458,7 +868,13 @@ export default function App() {
       const trimmed = line.trim();
       if (trimmed === '') return { id: `line-${lineIndex}`, isSpacer: true, isHeader: false, words: [] };
       
-      const sanitized = trimmed.replace(/[\u200B-\u200D\uFEFF]/g, '');
+      let sanitized = trimmed.replace(/[\u200B-\u200D\uFEFF]/g, '');
+      let isBold = false;
+      if (sanitized.startsWith('*')) {
+        isBold = true;
+        sanitized = sanitized.slice(1).trim();
+      }
+      
       const lower = sanitized.toLowerCase();
       
       const isBracketed = lower.startsWith('[') && lower.endsWith(']');
@@ -469,12 +885,12 @@ export default function App() {
         let cleanText = sanitized;
         if (isBracketed) cleanText = cleanText.slice(1, -1).trim();
         cleanText = cleanText.replace(/:$/, '').trim(); 
-        return { id: `line-${lineIndex}`, isSpacer: false, isHeader: true, text: cleanText, words: [] };
+        return { id: `line-${lineIndex}`, isSpacer: false, isHeader: true, text: cleanText, words: [], isBold };
       }
 
       const splitWords = sanitized.split(/\s+/).filter(w => w.length > 0);
       const wordObjects = splitWords.map((word, wordIndex) => ({ id: `word-${lineIndex}-${wordIndex}`, text: word }));
-      return { id: `line-${lineIndex}`, isSpacer: false, isHeader: false, words: wordObjects };
+      return { id: `line-${lineIndex}`, isSpacer: false, isHeader: false, words: wordObjects, isBold };
     });
   };
 
@@ -551,15 +967,26 @@ export default function App() {
             .then((data) => {
               if (data.isPro) {
                 setIsPro(true);
+              } else {
+                setIsLightMode(true);
               }
             })
             .catch((err) => console.error('Error syncing purchase:', err));
+        } else {
+          setIsLightMode(true);
         }
       }
     } else {
       setIsPro(false);
+      setIsLightMode(true);
     }
   }, [user]);
+
+  useEffect(() => {
+    if (!isPro) {
+      setIsLightMode(true);
+    }
+  }, [isPro]);
 
   // Load saved chart state on app startup
   useEffect(() => {
@@ -578,6 +1005,7 @@ export default function App() {
         setCustomPalette(data.customPalette || []);
         if (data.pdfTheme) setPdfTheme(data.pdfTheme);
         if (data.displayFormat) setDisplayFormat(data.displayFormat);
+        if (data.chordAccentColor) setChordAccentColor(data.chordAccentColor);
         setLyricLines(processLinesLogic(data.inputText || ""));
       } catch (e) {
         console.error("Failed to parse auto-saved session", e);
@@ -587,12 +1015,12 @@ export default function App() {
 
   // Auto-save state to localStorage on every change
   useEffect(() => {
-    const sessionData = { songTitle, artist, composer, songKey, capo, transpose, inputText, chordMap, customPalette, pdfTheme, displayFormat };
+    const sessionData = { songTitle, artist, composer, songKey, capo, transpose, inputText, chordMap, customPalette, pdfTheme, displayFormat, chordAccentColor };
     localStorage.setItem('mySongChart_activeSession', JSON.stringify(sessionData));
-  }, [songTitle, artist, composer, songKey, capo, transpose, inputText, chordMap, customPalette, pdfTheme, displayFormat]);
+  }, [songTitle, artist, composer, songKey, capo, transpose, inputText, chordMap, customPalette, pdfTheme, displayFormat, chordAccentColor]);
 
   const handleNewChart = () => {
-    if (window.confirm("Start a new chart? This will clear all current lyrics, titles, and placed chords.")) {
+    if (window.confirm("Start a new chart? This will clear all lyrics and placed chords.")) {
       saveSnapshot();
       setSongTitle("");
       setArtist("");
@@ -681,16 +1109,49 @@ export default function App() {
         setShowPreview((prev) => !prev);
       }
 
+      // Select All Chords: Cmd+A / Ctrl+A
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'a') {
+        const activeTag = document.activeElement?.tagName?.toLowerCase();
+        if (activeTag !== 'input' && activeTag !== 'textarea') {
+          e.preventDefault();
+          const placedChordIds = Object.keys(chordMap).filter(id => chordMap[id]);
+          setSelectedWordIds(placedChordIds);
+        }
+      }
+
+      // Wipe selected chords on Backspace/Delete or Enter/Return
+      if ((e.key === 'Backspace' || e.key === 'Delete' || e.key === 'Enter') && selectedWordIds.length > 0) {
+        const activeTag = document.activeElement?.tagName?.toLowerCase();
+        if (activeTag !== 'input' && activeTag !== 'textarea') {
+          e.preventDefault();
+          e.stopPropagation();
+          if (document.activeElement) {
+            document.activeElement.blur();
+          }
+          saveSnapshot();
+          setChordMap(prev => {
+            const newMap = { ...prev };
+            selectedWordIds.forEach(id => {
+              delete newMap[id];
+            });
+            return newMap;
+          });
+          setSelectedWordIds([]);
+          setFocusedWordId(null);
+        }
+      }
+
       if (e.key === 'Escape') {
         if (showPreview) setShowPreview(false);
         if (showUpgradeModal) setShowUpgradeModal(false);
         if (showHelpModal) setShowHelpModal(false);
+        setSelectedWordIds([]);
       }
     };
 
-    window.addEventListener('keydown', handleGlobalShortcuts);
-    return () => window.removeEventListener('keydown', handleGlobalShortcuts);
-  }, [showPreview, showUpgradeModal, showHelpModal, songTitle, artist, composer, songKey, capo, transpose, inputText, chordMap, customPalette, pdfTheme, displayFormat, history, redoStack]);
+    window.addEventListener('keydown', handleGlobalShortcuts, true);
+    return () => window.removeEventListener('keydown', handleGlobalShortcuts, true);
+  }, [showPreview, showUpgradeModal, showHelpModal, songTitle, artist, composer, songKey, capo, transpose, inputText, chordMap, customPalette, pdfTheme, displayFormat, history, redoStack, selectedWordIds]);
 
   useEffect(() => {
     const down = (e) => { if (e.key === 'Alt') setIsAltPressed(true); };
@@ -766,7 +1227,7 @@ export default function App() {
           if (text) {
             saveSnapshot();
             setChordMap(prev => {
-              const newStored = transposeString(text.trim(), -transSteps);
+              const newStored = parseChordStringToStandardLetter(text.trim(), songKey, transSteps, displayFormat);
               return { ...prev, [focusedWordId]: newStored };
             });
           }
@@ -784,29 +1245,33 @@ export default function App() {
 
         saveSnapshot();
         setChordMap(prev => {
-          const currentDisplayed = transposeString(currentStored, transSteps);
+          const currentDisplayed = formatChordDisplay(currentStored, songKey, transSteps, displayFormat) || '';
           const newDisplayed = currentDisplayed.slice(0, -1);
           if (newDisplayed === '') {
             const newMap = { ...prev };
             delete newMap[focusedWordId];
             return newMap;
           }
-          const newStored = transposeString(newDisplayed, -transSteps);
+          const newStored = parseChordStringToStandardLetter(newDisplayed, songKey, transSteps, displayFormat);
           return { ...prev, [focusedWordId]: newStored };
         });
         return;
       }
 
-      if (/^[a-zA-Z0-9#/+-]$/.test(e.key) && !e.ctrlKey && !e.metaKey) {
+      if (/^[a-zA-Z0-9#/+\-()]$/.test(e.key) && !e.ctrlKey && !e.metaKey) {
         e.preventDefault();
         saveSnapshot();
         setChordMap(prev => {
           const currentStored = prev[focusedWordId] || '';
-          const currentDisplayed = transposeString(currentStored, transSteps);
+          const currentDisplayed = formatChordDisplay(currentStored, songKey, transSteps, displayFormat) || '';
           let char = e.key;
-          if (currentDisplayed.length === 0 && /[a-g]/i.test(char)) char = char.toUpperCase();
+          if (currentDisplayed.length === 0 && /[a-z]/i.test(char)) {
+            if (displayFormat === 'letters' || displayFormat === 'solfege') {
+              char = char.toUpperCase();
+            }
+          }
           const newDisplayed = currentDisplayed + char;
-          const newStored = transposeString(newDisplayed, -transSteps);
+          const newStored = parseChordStringToStandardLetter(newDisplayed, songKey, transSteps, displayFormat);
           return { ...prev, [focusedWordId]: newStored };
         });
       }
@@ -909,11 +1374,11 @@ export default function App() {
       chordMap
     });
 
-    const blob = new Blob([chordProContent], { type: 'text/plain;charset=utf-8' });
+    const blob = new Blob([chordProContent], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `${songTitle ? songTitle.replace(/[^a-z0-9]/gi, '_').toLowerCase() : 'chart'}.pro`;
+    link.download = `${songTitle ? songTitle.replace(/[^a-z0-9]/gi, '_').toLowerCase() : 'chart'}.chordpro`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -950,22 +1415,62 @@ export default function App() {
   const scaleChords = getScaleChords(songKey);
 
   const getThemeFont = (theme) => {
-    if (theme === 'classic') return "'Georgia', 'Times New Roman', Times, serif";
-    if (theme === 'jazz') return "'Permanent Marker', cursive";
+    if (theme === 'classic-studio') return "'Roboto Mono', 'Courier New', Courier, monospace";
+    if (theme === 'real-book') return "'Architects Daughter', 'Caveat', cursive";
+    if (theme === 'elegance') return "'Lora', serif";
+    if (theme === 'minimalist') return "'Jost', sans-serif";
     return "'Cal Sans', -apple-system, BlinkMacSystemFont, sans-serif";
   };
 
   return (
     <>
       <style>{globalStyles}</style>
-      <div style={styles.container}>
+      <div className="app-container" style={styles.container}>
         
         <input type="file" accept=".json" ref={fileInputRef} style={{ display: 'none' }} onChange={handleLoadSession} />
 
-        <DndContext onDragEnd={handleDragEnd}>
+        {/* MOBILE TAB BAR */}
+        <div 
+          className="mobile-tab-bar" 
+          style={{ 
+            display: 'none', 
+            justifyContent: 'space-around', 
+            alignItems: 'center', 
+            backgroundColor: isLightMode ? '#ffffff' : '#18181b', 
+            borderBottom: `1px solid ${isLightMode ? '#e5e7eb' : '#27272a'}`,
+            height: '48px',
+            flexShrink: 0,
+            zIndex: 100,
+          }}
+        >
+          {['lyrics', 'chart', 'palette'].map((tab) => (
+            <button
+              key={tab}
+              type="button"
+              onClick={() => setActiveMobileTab(tab)}
+              style={{
+                flex: 1,
+                height: '100%',
+                border: 'none',
+                background: 'none',
+                fontSize: '14px',
+                fontWeight: 'bold',
+                fontFamily: "'Cal Sans', sans-serif",
+                color: activeMobileTab === tab ? '#3b82f6' : (isLightMode ? '#6b7280' : '#a1a1aa'),
+                borderBottom: activeMobileTab === tab ? '3px solid #3b82f6' : 'none',
+                cursor: 'pointer',
+                textTransform: 'capitalize',
+              }}
+            >
+              {tab === 'lyrics' ? '📝 Lyrics' : tab === 'chart' ? '📊 Chart' : '🎨 Palette'}
+            </button>
+          ))}
+        </div>
+
+        <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
           
           {/* LEFT COLUMN */}
-          <div style={{ ...styles.columnLeft, width: `${leftWidth}px` }} onClick={() => setFocusedWordId(null)}>
+          <div className={`column-left ${activeMobileTab === 'lyrics' ? 'mobile-show-active' : 'mobile-hide'}`} style={{ ...styles.columnLeft, width: `${leftWidth}px` }} onClick={() => setFocusedWordId(null)}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
               <h2 className="brand-title" style={{...styles.header, margin: 0, lineHeight: '1'}}>MySongChart</h2>
               
@@ -993,10 +1498,128 @@ export default function App() {
             <input type="text" className="styled-input" style={styles.input} value={composer} onChange={e => setComposer(e.target.value)} placeholder="e.g. Albert Hammond, Diane Warren" />
 
             <label style={styles.label}>Design Style</label>
-            <div style={{ display: 'flex', gap: '4px', marginBottom: '16px' }}>
-              <button type="button" onClick={() => setPdfTheme('modern')} style={pdfTheme === 'modern' ? styles.miniBtnActive : styles.miniBtnInactive}>Modern</button>
-              <button type="button" onClick={() => setPdfTheme('classic')} style={pdfTheme === 'classic' ? styles.miniBtnActive : styles.miniBtnInactive}>Classic</button>
-              <button type="button" onClick={() => setPdfTheme('jazz')} style={pdfTheme === 'jazz' ? styles.miniBtnActive : styles.miniBtnInactive}>Jazz</button>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginBottom: '16px' }}>
+              <div style={{ display: 'flex', gap: '4px' }}>
+                <button 
+                  type="button" 
+                  onClick={() => setPdfTheme('modern')} 
+                  style={pdfTheme === 'modern' ? styles.miniBtnActive : styles.miniBtnInactive}
+                >
+                  Modern
+                </button>
+                <button 
+                  type="button" 
+                  onClick={() => setPdfTheme('classic-studio')} 
+                  style={pdfTheme === 'classic-studio' ? styles.miniBtnActive : styles.miniBtnInactive}
+                >
+                  Classic Studio
+                </button>
+              </div>
+              <div style={{ display: 'flex', gap: '4px' }}>
+                <button 
+                  type="button" 
+                  onClick={() => {
+                    if (isPro) {
+                      setPdfTheme('real-book');
+                    } else {
+                      setShowUpgradeModal(true);
+                    }
+                  }} 
+                  style={{
+                    ...(pdfTheme === 'real-book' ? styles.miniBtnActive : styles.miniBtnInactive),
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '4px'
+                  }}
+                >
+                  {!isPro && <span>🔒</span>} Real Book
+                </button>
+                <button 
+                  type="button" 
+                  onClick={() => {
+                    if (isPro) {
+                      setPdfTheme('elegance');
+                    } else {
+                      setShowUpgradeModal(true);
+                    }
+                  }} 
+                  style={{
+                    ...(pdfTheme === 'elegance' ? styles.miniBtnActive : styles.miniBtnInactive),
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '4px'
+                  }}
+                >
+                  {!isPro && <span>🔒</span>} Elegance
+                </button>
+                <button 
+                  type="button" 
+                  onClick={() => {
+                    if (isPro) {
+                      setPdfTheme('minimalist');
+                    } else {
+                      setShowUpgradeModal(true);
+                    }
+                  }} 
+                  style={{
+                    ...(pdfTheme === 'minimalist' ? styles.miniBtnActive : styles.miniBtnInactive),
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '4px'
+                  }}
+                >
+                  {!isPro && <span>🔒</span>} Minimalist
+                </button>
+              </div>
+            </div>
+
+            {/* Pro Chord Accent Color Selector */}
+            <div style={{ marginBottom: '16px' }}>
+              <label style={{ ...styles.label, textAlign: 'center' }}>
+                {!isPro && <span style={{ marginRight: '4px' }}>🔒</span>} Chord Accent Color
+              </label>
+              <div style={{ display: 'flex', gap: '6px', alignItems: 'center', justifyContent: 'center' }}>
+                {[
+                  { name: 'Black', value: '#111827' },
+                  { name: 'Red', value: '#DC2626' },
+                  { name: 'Blue', value: '#2563EB' },
+                  { name: 'Green', value: '#16A34A' },
+                  { name: 'Yellow', value: '#EAB308' }
+                ].map((color) => {
+                  const isSelected = isPro ? chordAccentColor === color.value : color.value === '#111827';
+                  return (
+                    <button
+                      key={color.value}
+                      type="button"
+                      onClick={() => {
+                        if (isPro) {
+                          setChordAccentColor(color.value);
+                        } else {
+                          setShowUpgradeModal(true);
+                        }
+                      }}
+                      title={color.name}
+                      style={{
+                        width: '28px',
+                        height: '28px',
+                        borderRadius: '50%',
+                        backgroundColor: color.value,
+                        border: isSelected 
+                          ? `3px solid ${isLightMode ? '#3b82f6' : '#60a5fa'}` 
+                          : `1px solid ${isLightMode ? '#d1d5db' : '#4b5563'}`,
+                        cursor: 'pointer',
+                        padding: 0,
+                        boxShadow: isSelected ? '0 0 4px rgba(59, 130, 246, 0.5)' : 'none',
+                        transition: 'transform 0.1s',
+                        transform: isSelected ? 'scale(1.1)' : 'scale(1)'
+                      }}
+                    />
+                  );
+                })}
+              </div>
             </div>
 
             <div style={{ padding: '14px', backgroundColor: isLightMode ? '#eff6ff' : '#27272a', borderRadius: '8px', marginBottom: '16px', border: '1px solid #3b82f6', textAlign: 'center' }}>
@@ -1025,13 +1648,16 @@ export default function App() {
             <div style={{ fontSize: '12px', color: isLightMode ? '#6b7280' : '#a1a1aa', marginBottom: '6px', lineHeight: '1.3' }}>
               Add section headers (e.g. Verse, Chorus) on separate lines.
             </div>
-            <textarea style={styles.textArea} value={inputText} onChange={e => setInputText(e.target.value)} />
+            <div style={{ display: 'flex', flexDirection: 'column', width: '100%', position: 'relative' }}>
+              <textarea style={styles.textArea} value={inputText} onChange={e => setInputText(e.target.value)} />
+            </div>
             
             <button type="button" style={styles.button} onClick={processLyrics}>Map Lyrics to Canvas</button>
           </div>
 
           {/* LEFT RESIZE HANDLE */}
           <div
+            className="mobile-resizer"
             onMouseDown={handleMouseDownLeft}
             style={{
               width: '8px',
@@ -1045,12 +1671,28 @@ export default function App() {
           />
 
           {/* CENTER CANVAS COLUMN */}
-          <div style={{ ...styles.columnCenter, flex: 1 }} onClick={() => setFocusedWordId(null)}>
-            <div id="action-bar" style={{ display: 'flex', gap: '8px', alignItems: 'center', justifyContent: 'center', marginBottom: '24px', flexWrap: 'nowrap', width: '100%' }}>
+          <div className={`column-center ${activeMobileTab === 'chart' ? 'mobile-show-active' : 'mobile-hide'}`} style={{ ...styles.columnCenter, flex: 1 }} onClick={() => setFocusedWordId(null)}>
+
+            <div id="action-bar" style={{ display: 'flex', gap: '10px', alignItems: 'center', justifyContent: 'center', marginBottom: '24px', flexWrap: 'wrap', width: '100%' }}>
+              <button type="button" className="top-action-btn" style={styles.actionButton} onClick={handleNewChart}>
+                ➕ New
+              </button>
+              <button type="button" className="top-action-btn" style={styles.actionButton} onClick={() => fileInputRef.current.click()}>
+                📂 Load
+              </button>
+              <button type="button" className="top-action-btn" style={styles.actionButton} onClick={() => setShowPreview(true)} title="Shortcut: Cmd+E / Ctrl+E">
+                📤 Export
+              </button>
+              <div style={{ width: '1px', height: '20px', backgroundColor: isLightMode ? '#d1d5db' : '#3f3f46', margin: '0 4px' }} />
               <button 
                 type="button" 
                 className="top-action-btn" 
-                style={{ ...styles.actionButton, opacity: history.length === 0 ? 0.5 : 1, cursor: history.length === 0 ? 'not-allowed' : 'pointer' }} 
+                style={{ 
+                  ...styles.actionButton,
+                  padding: '8px 12px',
+                  opacity: history.length === 0 ? 0.5 : 1, 
+                  cursor: history.length === 0 ? 'not-allowed' : 'pointer',
+                }} 
                 onClick={handleUndo}
                 disabled={history.length === 0}
                 title="Undo (⌘Z)"
@@ -1060,24 +1702,17 @@ export default function App() {
               <button 
                 type="button" 
                 className="top-action-btn" 
-                style={{ ...styles.actionButton, opacity: redoStack.length === 0 ? 0.5 : 1, cursor: redoStack.length === 0 ? 'not-allowed' : 'pointer' }} 
+                style={{ 
+                  ...styles.actionButton,
+                  padding: '8px 12px',
+                  opacity: redoStack.length === 0 ? 0.5 : 1, 
+                  cursor: redoStack.length === 0 ? 'not-allowed' : 'pointer',
+                }} 
                 onClick={handleRedo}
                 disabled={redoStack.length === 0}
                 title="Redo (⌘Shift+Z)"
               >
                 ↪️
-              </button>
-              <button type="button" className="top-action-btn" style={styles.actionButton} onClick={handleNewChart}>
-                ➕ New Chart
-              </button>
-              <button type="button" className="top-action-btn" style={{ ...styles.actionButton, color: '#ef4444', borderColor: isLightMode ? '#fca5a5' : '#7f1d1d' }} onClick={handleClearAllChords}>
-                🗑️ Clear Chords
-              </button>
-              <button type="button" className="top-action-btn" style={styles.actionButton} onClick={() => fileInputRef.current.click()}>
-                Load File
-              </button>
-              <button type="button" className="top-action-btn" style={styles.actionButton} onClick={() => setShowPreview(true)} title="Shortcut: Cmd+E / Ctrl+E">
-                Export Chart (⌘E)
               </button>
             </div>            
             <div style={{ paddingBottom: '12px', marginBottom: '20px', borderBottom: `2px solid ${isLightMode ? '#e5e7eb' : '#27272a'}` }}>
@@ -1124,7 +1759,12 @@ export default function App() {
                             isLight={isLightMode} 
                             pdfTheme={pdfTheme}
                             isFocused={focusedWordId === w.id}
-                            onFocus={setFocusedWordId}
+                            isSelected={selectedWordIds.includes(w.id)}
+                            onFocus={(wordId) => {
+                              setFocusedWordId(wordId);
+                              setSelectedWordIds([]);
+                            }}
+                            isBold={line.isBold}
                           />
                         );
                       })}
@@ -1137,6 +1777,7 @@ export default function App() {
 
           {/* RIGHT RESIZE HANDLE */}
           <div
+            className="mobile-resizer"
             onMouseDown={handleMouseDownRight}
             style={{
               width: '8px',
@@ -1150,7 +1791,7 @@ export default function App() {
           />
 
           {/* RIGHT PALETTE COLUMN */}
-          <div style={{ ...styles.columnRight, width: `${rightWidth}px` }} onClick={() => setFocusedWordId(null)}>
+          <div className={`column-right ${activeMobileTab === 'palette' ? 'mobile-show-active' : 'mobile-hide'}`} style={{ ...styles.columnRight, width: `${rightWidth}px` }} onClick={() => setFocusedWordId(null)}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', gap: '8px' }}>
               <h2 className="header-title" style={{ ...styles.header, margin: 0, fontSize: '18px', whiteSpace: 'nowrap' }}>
                 Chord Palette
@@ -1168,10 +1809,18 @@ export default function App() {
 
                 <button 
                   type="button" 
-                  onClick={() => setIsLightMode(!isLightMode)} 
-                  style={{ background: 'none', border: `1px solid ${isLightMode ? '#d1d5db' : '#3f3f46'}`, color: isLightMode ? '#111827' : '#e4e4e7', padding: '4px 8px', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold' }}
+                  onClick={() => {
+                    if (!isPro) {
+                      setShowUpgradeModal(true);
+                      setIsLightMode(true);
+                    } else {
+                      setIsLightMode(!isLightMode);
+                    }
+                  }} 
+                  style={{ background: 'none', border: `1px solid ${isLightMode ? '#d1d5db' : '#3f3f46'}`, color: isLightMode ? '#111827' : '#e4e4e7', padding: '4px 8px', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '4px' }}
                   title="Toggle Dark/Light Mode"
                 >
+                  {!isPro && <span style={{ fontSize: '10px' }}>🔒</span>}
                   {isLightMode ? '🌙' : '☀️'}
                 </button>
               </div>
@@ -1191,10 +1840,24 @@ export default function App() {
                 <input 
                   type="text" 
                   style={{...styles.input, marginBottom: 0}} 
-                  value={transposeString(songKey || "G", transSteps)} 
+                  value={songKey} 
                   onChange={e => {
                     saveSnapshot();
-                    setSongKey(e.target.value);
+                    const newKey = e.target.value;
+                    const diff = getSemitoneDifference(songKey, newKey);
+                    if (diff !== 0 && Object.keys(chordMap).length > 0) {
+                      setChordMap(prev => {
+                        const newMap = {};
+                        Object.keys(prev).forEach(id => {
+                          const originalChord = prev[id];
+                          if (originalChord) {
+                            newMap[id] = transposeStoredChord(originalChord, diff);
+                          }
+                        });
+                        return newMap;
+                      });
+                    }
+                    setSongKey(newKey);
                     setTranspose("0");
                   }} 
                   placeholder="G" 
@@ -1328,6 +1991,9 @@ export default function App() {
                     <li>
                       <strong>Beat Spacers:</strong> Put underscores (<code style={kbdStyle(isLightMode)}>_</code>) in lyrics to create blank chord boxes for empty measures.
                     </li>
+                    <li>
+                      <strong>Bold Lines:</strong> Start any lyric line with an asterisk (<code style={kbdStyle(isLightMode)}>*</code>) in the text box to render that entire line in bold text on the chart.
+                    </li>
                   </ul>
                 </div>
 
@@ -1340,6 +2006,7 @@ export default function App() {
                     <li><strong>Drag & Drop:</strong> Drag chord pills directly onto words or spacers on the chart.</li>
                     <li><strong>Type Directly:</strong> Click any word to highlight it, then type chords (e.g. <code style={kbdStyle(isLightMode)}>G</code>, <code style={kbdStyle(isLightMode)}>Am7</code>) on your keyboard.</li>
                     <li><strong>Navigate:</strong> Press <code style={kbdStyle(isLightMode)}>Space</code> or <code style={kbdStyle(isLightMode)}>→</code> to move to the next word, or <code style={kbdStyle(isLightMode)}>Enter</code> for the next section.</li>
+                    <li><strong>Select All & Delete:</strong> Press <code style={kbdStyle(isLightMode)}>⌘A</code> (or <code style={kbdStyle(isLightMode)}>Ctrl+A</code>) outside text boxes to highlight all placed chords, then press <code style={kbdStyle(isLightMode)}>Backspace</code> or <code style={kbdStyle(isLightMode)}>Delete</code> to remove them all.</li>
                   </ul>
                 </div>
 
@@ -1359,12 +2026,14 @@ export default function App() {
                     4. Keyboard Shortcuts
                   </h3>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px 16px', fontSize: '12px', color: isLightMode ? '#475569' : '#cbd5e1' }}>
-                    <div><code style={kbdStyle(isLightMode)}>⌘ + Z</code> Undo</div>
-                    <div><code style={kbdStyle(isLightMode)}>⌘ + Shift + Z</code> Redo</div>
-                    <div><code style={kbdStyle(isLightMode)}>⌘ + E</code> Export Chart</div>
-                    <div><code style={kbdStyle(isLightMode)}>⌘ + S</code> Save Session</div>
-                    <div><code style={kbdStyle(isLightMode)}>⌘ + C / V</code> Copy/Paste Chord</div>
-                    <div><code style={kbdStyle(isLightMode)}>Esc</code> Deselect / Close</div>
+                    <div><kbd style={kbdStyle(isLightMode)}>⌘ + Z</kbd> : Undo</div>
+                    <div><kbd style={kbdStyle(isLightMode)}>⌘ + Shift + Z</kbd> : Redo</div>
+                    <div><kbd style={kbdStyle(isLightMode)}>⌘ + A</kbd> : Select All Chords</div>
+                    <div><kbd style={kbdStyle(isLightMode)}>Backspace / Delete</kbd> : Remove Selected Chords</div>
+                    <div><kbd style={kbdStyle(isLightMode)}>⌘ + E</kbd> : Export Chart</div>
+                    <div><kbd style={kbdStyle(isLightMode)}>⌘ + S</kbd> : Save Session</div>
+                    <div><kbd style={kbdStyle(isLightMode)}>⌘ + C / V</kbd> : Copy/Paste Chord</div>
+                    <div><kbd style={kbdStyle(isLightMode)}>Esc</kbd> : Deselect / Close</div>
                   </div>
                 </div>
 
@@ -1552,20 +2221,18 @@ export default function App() {
                               const originalChord = chordMap[w.id];
                               const displayChord = formatChordDisplay(originalChord, songKey, transSteps, displayFormat);
                               const isEmptyBeat = w.text === '_';
-                              let chordColor = '#1e3a8a';
-                              if (pdfTheme === 'classic') chordColor = '#000000';
-                              if (pdfTheme === 'jazz') chordColor = '#000000'; 
+                              let chordColor = isPro ? chordAccentColor : '#111827';
 
                               return (
-                                <div key={w.id} className="canvas-word" style={{ display: 'inline-flex', flexDirection: 'column', margin: '0 10px 0 0', minWidth: isEmptyBeat ? '30px' : '18px', pageBreakInside: 'avoid', breakInside: 'avoid' }}>
-                                  <div style={{ height: '18px', width: '100%', display: 'flex', justifyContent: 'flex-start', alignItems: 'center', marginBottom: '1px' }}>
+                                <div key={w.id} className="canvas-word" style={{ display: 'inline-flex', flexDirection: 'column', margin: pdfTheme === 'minimalist' ? '0 6px 0 0' : '0 10px 0 0', minWidth: isEmptyBeat ? (pdfTheme === 'minimalist' ? '22px' : '30px') : '18px', pageBreakInside: 'avoid', breakInside: 'avoid' }}>
+                                  <div style={{ height: pdfTheme === 'minimalist' ? '14px' : '18px', width: '100%', display: 'flex', justifyContent: 'flex-start', alignItems: 'center', marginBottom: '1px' }}>
                                     {displayChord && (
-                                      <span style={{ color: chordColor, fontSize: '14px', fontWeight: 'bold', fontFamily: getThemeFont(pdfTheme) }}>
+                                      <span style={{ color: chordColor, fontSize: pdfTheme === 'minimalist' ? '12px' : '14px', fontWeight: 'bold', fontFamily: getThemeFont(pdfTheme) }}>
                                         {displayChord}
                                       </span>
                                     )}
                                   </div>
-                                  <div className="word-text" style={{ fontSize: '12pt', color: isEmptyBeat ? 'transparent' : '#111827', whiteSpace: 'pre', fontFamily: getThemeFont(pdfTheme) }}>
+                                  <div className="word-text" style={{ fontSize: pdfTheme === 'minimalist' ? '10pt' : '12pt', color: isEmptyBeat ? 'transparent' : '#111827', whiteSpace: 'pre', fontFamily: getThemeFont(pdfTheme), fontWeight: line.isBold ? 'bold' : undefined }}>
                                     {isEmptyBeat ? '_' : w.text}
                                   </div>
                                 </div>
