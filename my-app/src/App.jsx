@@ -115,14 +115,26 @@ const globalStyles = `
 const getStyles = (isLight, pdfTheme) => {
   let canvasFont = "'Cal Sans', sans-serif";
   let titleFont = "'Cal Sans', sans-serif";
+  let spacingStyle = {};
 
-  if (pdfTheme === 'classic') {
-    canvasFont = "'Georgia', 'Times New Roman', Times, serif";
-    titleFont = "'Georgia', 'Times New Roman', Times, serif";
-  } else if (pdfTheme === 'jazz') {
-    canvasFont = "'Permanent Marker', cursive";
-    titleFont = "'Permanent Marker', cursive";
-  } else if (pdfTheme === 'modern') {
+  if (pdfTheme === 'classic-studio') {
+    canvasFont = "'Roboto Mono', 'Courier New', Courier, monospace";
+    titleFont = "'Roboto Mono', 'Courier New', Courier, monospace";
+  } else if (pdfTheme === 'real-book') {
+    canvasFont = "'Architects Daughter', 'Caveat', cursive";
+    titleFont = "'Architects Daughter', 'Caveat', cursive";
+  } else if (pdfTheme === 'elegance') {
+    canvasFont = "'Lora', serif";
+    titleFont = "'Lora', serif";
+  } else if (pdfTheme === 'minimalist') {
+    canvasFont = "'Jost', sans-serif";
+    titleFont = "'Jost', sans-serif";
+    spacingStyle = {
+      marginRight: '6px',
+      marginBottom: '4px',
+    };
+  } else {
+    // default: modern
     canvasFont = "'Cal Sans', sans-serif";
     titleFont = "'Cal Sans', sans-serif";
   }
@@ -144,11 +156,11 @@ const getStyles = (isLight, pdfTheme) => {
     miniBtnInactive: { flex: 1, minWidth: '32px', padding: '8px 4px', backgroundColor: isLight ? '#f9fafb' : '#27272a', color: isLight ? '#4b5563' : '#a1a1aa', border: `1px solid ${isLight ? '#d1d5db' : '#3f3f46'}`, borderRadius: '4px', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold', fontFamily: "'Cal Sans', sans-serif" },
     addBtn: { padding: '8px 12px', backgroundColor: '#10b981', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '13px', fontWeight: 'bold', width: '100%', fontFamily: "'Cal Sans', sans-serif" },
     chordToken: { display: 'inline-flex', alignItems: 'center', padding: '6px 10px', margin: '4px', backgroundColor: '#2563eb', color: 'white', borderRadius: '6px', cursor: 'grab', fontWeight: 'bold', fontSize: '14px', userSelect: 'none', gap: '6px', fontFamily: "'Cal Sans', sans-serif" },
-    lyricLine: { display: 'flex', flexWrap: 'wrap', width: '100%', marginBottom: '8px', pageBreakInside: 'avoid', breakInside: 'avoid' },
-    canvasWord: { display: 'inline-flex', flexDirection: 'column', margin: '0 10px 0 0', minWidth: '20px', cursor: 'pointer', pageBreakInside: 'avoid', breakInside: 'avoid' },
-    dropZone: { height: '26px', width: '100%', minWidth: '20px', borderRadius: '4px', display: 'flex', justifyContent: 'flex-start', alignItems: 'center', marginBottom: '2px', transition: 'all 0.1s' },
-    wordText: { fontSize: '14px', color: isLight ? '#111827' : '#e4e4e7', whiteSpace: 'pre', fontFamily: canvasFont },
-    songTitleStyle: { margin: '0 auto 4px auto', fontSize: '32px', lineHeight: '1.15', textAlign: 'center', color: isLight ? '#111827' : '#f4f4f5', fontFamily: titleFont, fontWeight: 'bold', maxWidth: '600px', textWrap: 'balance' },
+    lyricLine: { display: 'flex', flexWrap: 'wrap', width: '100%', marginBottom: pdfTheme === 'minimalist' ? '4px' : '8px', pageBreakInside: 'avoid', breakInside: 'avoid' },
+    canvasWord: { display: 'inline-flex', flexDirection: 'column', margin: pdfTheme === 'minimalist' ? '0 6px 0 0' : '0 10px 0 0', minWidth: '20px', cursor: 'pointer', pageBreakInside: 'avoid', breakInside: 'avoid', ...spacingStyle },
+    dropZone: { height: pdfTheme === 'minimalist' ? '22px' : '26px', width: '100%', minWidth: '20px', borderRadius: '4px', display: 'flex', justifyContent: 'flex-start', alignItems: 'center', marginBottom: '2px', transition: 'all 0.1s' },
+    wordText: { fontSize: pdfTheme === 'minimalist' ? '12px' : '14px', color: isLight ? '#111827' : '#e4e4e7', whiteSpace: 'pre', fontFamily: canvasFont, fontWeight: 400 },
+    songTitleStyle: { margin: '0 auto 4px auto', fontSize: '32px', lineHeight: '1.15', textAlign: 'center', color: isLight ? '#111827' : '#f4f4f5', fontFamily: titleFont, fontWeight: 700, maxWidth: '600px', textWrap: 'balance' },
   };
 };
 
@@ -489,13 +501,13 @@ const getScaleChords = (keyInput) => {
 const generateChordProText = ({ songTitle, artist, composer, songKey, capo, transSteps, displayFormat, lyricLines, chordMap }) => {
   let output = [];
 
-  if (songTitle) output.push(`{title: ${songTitle}}`);
-  if (artist) output.push(`{artist: ${artist}}`);
-  if (composer) output.push(`{composer: ${composer}}`);
+  if (songTitle && songTitle.trim() !== '') output.push(`{title: ${songTitle.trim()}}`);
+  if (artist && artist.trim() !== '') output.push(`{artist: ${artist.trim()}}`);
+  if (composer && composer.trim() !== '') output.push(`{composer: ${composer.trim()}}`);
   
   const activeKey = transposeString(songKey || "G", transSteps);
-  if (activeKey) output.push(`{key: ${activeKey}}`);
-  if (capo && capo !== "0") output.push(`{capo: ${capo}}`);
+  if (activeKey && activeKey.trim() !== '') output.push(`{key: ${activeKey.trim()}}`);
+  if (capo && capo !== "0" && capo.trim() !== '') output.push(`{capo: ${capo.trim()}}`);
   
   output.push('');
 
@@ -505,20 +517,39 @@ const generateChordProText = ({ songTitle, artist, composer, songKey, capo, tran
     } else if (line.isHeader) {
       output.push(`{comment: ${line.text}}`);
     } else if (line.words && line.words.length > 0) {
-      let lineText = '';
-      line.words.forEach(w => {
-        const originalChord = chordMap[w.id];
-        const displayChord = formatChordDisplay(originalChord, songKey, transSteps, displayFormat);
-        
-        if (displayChord) {
-          lineText += `[${displayChord}]`;
+      // Check if this line is purely beat spaces (e.g. only contains empty beat spaces '_' or chords)
+      const hasActualLyrics = line.words.some(w => w.text !== '_');
+
+      if (!hasActualLyrics) {
+        // Standalone chord line: write as space-separated bracketed chords
+        let standaloneParts = [];
+        line.words.forEach(w => {
+          const originalChord = chordMap[w.id];
+          const displayChord = formatChordDisplay(originalChord, songKey, transSteps, displayFormat);
+          if (displayChord) {
+            standaloneParts.push(`[${displayChord}]`);
+          }
+        });
+        if (standaloneParts.length > 0) {
+          output.push(standaloneParts.join(' '));
         }
-        
-        if (w.text !== '_') {
-          lineText += w.text + ' ';
-        }
-      });
-      output.push(lineText.trimEnd());
+      } else {
+        // Standard inline chord formatting: [G]Words go [C]here
+        let lineText = '';
+        line.words.forEach(w => {
+          const originalChord = chordMap[w.id];
+          const displayChord = formatChordDisplay(originalChord, songKey, transSteps, displayFormat);
+          
+          if (displayChord) {
+            lineText += `[${displayChord}]`;
+          }
+          
+          if (w.text !== '_') {
+            lineText += w.text + ' ';
+          }
+        });
+        output.push(lineText.trimEnd());
+      }
     }
   });
 
@@ -546,20 +577,21 @@ function DraggableChord({ id, text, baseText, onDelete, isCustom }) {
   );
 }
 
-function DraggableCanvasChord({ wordId, text, isLight, pdfTheme, onFocus }) {
+function DraggableCanvasChord({ wordId, text, isLight, pdfTheme, onFocus, chordAccentColor, isPro }) {
   const { attributes, listeners, setNodeRef, transform } = useDraggable({
     id: `canvas-${wordId}`,
     data: { type: 'canvas', sourceWordId: wordId }
   });
   const style = transform ? { transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`, zIndex: 100, cursor: 'grabbing', opacity: 0.8 } : undefined;
   
-  let chordColor = '#1e3a8a';
-  if (pdfTheme === 'classic') chordColor = isLight ? '#000000' : '#ffffff';
-  if (pdfTheme === 'jazz') chordColor = '#000000'; 
+  // Free users default to #111827 (Black/Onyx). Pro users use selected chordAccentColor (defaults to #111827).
+  let chordColor = isPro ? chordAccentColor : '#111827';
 
   let fontStyle = "'Cal Sans', sans-serif";
-  if (pdfTheme === 'jazz') fontStyle = "'Permanent Marker', cursive";
-  if (pdfTheme === 'classic') fontStyle = "'Georgia', 'Times New Roman', Times, serif";
+  if (pdfTheme === 'classic-studio') fontStyle = "'Roboto Mono', 'Courier New', Courier, monospace";
+  if (pdfTheme === 'real-book') fontStyle = "'Architects Daughter', 'Caveat', cursive";
+  if (pdfTheme === 'elegance') fontStyle = "'Lora', serif";
+  if (pdfTheme === 'minimalist') fontStyle = "'Jost', sans-serif";
 
   return (
     <div 
@@ -570,14 +602,14 @@ function DraggableCanvasChord({ wordId, text, isLight, pdfTheme, onFocus }) {
         onFocus(wordId);
         if (listeners?.onPointerDown) listeners.onPointerDown(e);
       }}
-      style={{ ...style, color: chordColor, fontSize: '15px', fontWeight: 'bold', fontFamily: fontStyle }}
+      style={{ ...style, color: chordColor, fontSize: '15px', fontWeight: 700, fontFamily: fontStyle }}
     >
       {text}
     </div>
   );
 }
 
-function DroppableWord({ id, word, assignedChord, isLight, pdfTheme, isFocused, isSelected, onFocus, isBold }) {
+function DroppableWord({ id, word, assignedChord, isLight, pdfTheme, isFocused, isSelected, onFocus, isBold, chordAccentColor, isPro }) {
   const { isOver, setNodeRef } = useDroppable({ id });
   const styles = getStyles(isLight, pdfTheme);
   const isEmptyBeat = word === '_';
@@ -596,7 +628,15 @@ function DroppableWord({ id, word, assignedChord, isLight, pdfTheme, isFocused, 
     <div className="canvas-word avoid-break" style={styles.canvasWord} onClick={(e) => { e.stopPropagation(); onFocus(id); }}>
       <div ref={setNodeRef} className="drop-zone" style={dropZoneStyle}>
         {assignedChord && (
-          <DraggableCanvasChord wordId={id} text={assignedChord} isLight={isLight} pdfTheme={pdfTheme} onFocus={onFocus} />
+          <DraggableCanvasChord 
+            wordId={id} 
+            text={assignedChord} 
+            isLight={isLight} 
+            pdfTheme={pdfTheme} 
+            onFocus={onFocus} 
+            chordAccentColor={chordAccentColor}
+            isPro={isPro}
+          />
         )}
       </div>
       <div className="word-text" style={{...styles.wordText, color: isEmptyBeat ? 'transparent' : (isLight ? '#111827' : '#e4e4e7'), fontWeight: isBold ? 'bold' : undefined}}>
@@ -636,6 +676,7 @@ export default function App() {
   const [selectedWordIds, setSelectedWordIds] = useState([]);
   const [pdfTheme, setPdfTheme] = useState('modern');
   const [displayFormat, setDisplayFormat] = useState('letters');
+  const [chordAccentColor, setChordAccentColor] = useState('#111827');
   const [showPreview, setShowPreview] = useState(false);
   
   const [isPro, setIsPro] = useState(false);
@@ -825,15 +866,26 @@ export default function App() {
             .then((data) => {
               if (data.isPro) {
                 setIsPro(true);
+              } else {
+                setIsLightMode(true);
               }
             })
             .catch((err) => console.error('Error syncing purchase:', err));
+        } else {
+          setIsLightMode(true);
         }
       }
     } else {
       setIsPro(false);
+      setIsLightMode(true);
     }
   }, [user]);
+
+  useEffect(() => {
+    if (!isPro) {
+      setIsLightMode(true);
+    }
+  }, [isPro]);
 
   // Load saved chart state on app startup
   useEffect(() => {
@@ -852,6 +904,7 @@ export default function App() {
         setCustomPalette(data.customPalette || []);
         if (data.pdfTheme) setPdfTheme(data.pdfTheme);
         if (data.displayFormat) setDisplayFormat(data.displayFormat);
+        if (data.chordAccentColor) setChordAccentColor(data.chordAccentColor);
         setLyricLines(processLinesLogic(data.inputText || ""));
       } catch (e) {
         console.error("Failed to parse auto-saved session", e);
@@ -861,9 +914,9 @@ export default function App() {
 
   // Auto-save state to localStorage on every change
   useEffect(() => {
-    const sessionData = { songTitle, artist, composer, songKey, capo, transpose, inputText, chordMap, customPalette, pdfTheme, displayFormat };
+    const sessionData = { songTitle, artist, composer, songKey, capo, transpose, inputText, chordMap, customPalette, pdfTheme, displayFormat, chordAccentColor };
     localStorage.setItem('mySongChart_activeSession', JSON.stringify(sessionData));
-  }, [songTitle, artist, composer, songKey, capo, transpose, inputText, chordMap, customPalette, pdfTheme, displayFormat]);
+  }, [songTitle, artist, composer, songKey, capo, transpose, inputText, chordMap, customPalette, pdfTheme, displayFormat, chordAccentColor]);
 
   const handleNewChart = () => {
     if (window.confirm("Start a new chart? This will clear all lyrics and placed chords.")) {
@@ -965,11 +1018,15 @@ export default function App() {
         }
       }
 
-      // Wipe selected chords
-      if ((e.key === 'Backspace' || e.key === 'Delete') && selectedWordIds.length > 0) {
+      // Wipe selected chords on Backspace/Delete or Enter/Return
+      if ((e.key === 'Backspace' || e.key === 'Delete' || e.key === 'Enter') && selectedWordIds.length > 0) {
         const activeTag = document.activeElement?.tagName?.toLowerCase();
         if (activeTag !== 'input' && activeTag !== 'textarea') {
           e.preventDefault();
+          e.stopPropagation();
+          if (document.activeElement) {
+            document.activeElement.blur();
+          }
           saveSnapshot();
           setChordMap(prev => {
             const newMap = { ...prev };
@@ -979,6 +1036,7 @@ export default function App() {
             return newMap;
           });
           setSelectedWordIds([]);
+          setFocusedWordId(null);
         }
       }
 
@@ -990,8 +1048,8 @@ export default function App() {
       }
     };
 
-    window.addEventListener('keydown', handleGlobalShortcuts);
-    return () => window.removeEventListener('keydown', handleGlobalShortcuts);
+    window.addEventListener('keydown', handleGlobalShortcuts, true);
+    return () => window.removeEventListener('keydown', handleGlobalShortcuts, true);
   }, [showPreview, showUpgradeModal, showHelpModal, songTitle, artist, composer, songKey, capo, transpose, inputText, chordMap, customPalette, pdfTheme, displayFormat, history, redoStack, selectedWordIds]);
 
   useEffect(() => {
@@ -1215,11 +1273,11 @@ export default function App() {
       chordMap
     });
 
-    const blob = new Blob([chordProContent], { type: 'text/plain;charset=utf-8' });
+    const blob = new Blob([chordProContent], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `${songTitle ? songTitle.replace(/[^a-z0-9]/gi, '_').toLowerCase() : 'chart'}.pro`;
+    link.download = `${songTitle ? songTitle.replace(/[^a-z0-9]/gi, '_').toLowerCase() : 'chart'}.chordpro`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -1256,8 +1314,10 @@ export default function App() {
   const scaleChords = getScaleChords(songKey);
 
   const getThemeFont = (theme) => {
-    if (theme === 'classic') return "'Georgia', 'Times New Roman', Times, serif";
-    if (theme === 'jazz') return "'Permanent Marker', cursive";
+    if (theme === 'classic-studio') return "'Roboto Mono', 'Courier New', Courier, monospace";
+    if (theme === 'real-book') return "'Architects Daughter', 'Caveat', cursive";
+    if (theme === 'elegance') return "'Lora', serif";
+    if (theme === 'minimalist') return "'Jost', sans-serif";
     return "'Cal Sans', -apple-system, BlinkMacSystemFont, sans-serif";
   };
 
@@ -1337,10 +1397,128 @@ export default function App() {
             <input type="text" className="styled-input" style={styles.input} value={composer} onChange={e => setComposer(e.target.value)} placeholder="e.g. Albert Hammond, Diane Warren" />
 
             <label style={styles.label}>Design Style</label>
-            <div style={{ display: 'flex', gap: '4px', marginBottom: '16px' }}>
-              <button type="button" onClick={() => setPdfTheme('modern')} style={pdfTheme === 'modern' ? styles.miniBtnActive : styles.miniBtnInactive}>Modern</button>
-              <button type="button" onClick={() => setPdfTheme('classic')} style={pdfTheme === 'classic' ? styles.miniBtnActive : styles.miniBtnInactive}>Classic</button>
-              <button type="button" onClick={() => setPdfTheme('jazz')} style={pdfTheme === 'jazz' ? styles.miniBtnActive : styles.miniBtnInactive}>Jazz</button>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginBottom: '16px' }}>
+              <div style={{ display: 'flex', gap: '4px' }}>
+                <button 
+                  type="button" 
+                  onClick={() => setPdfTheme('modern')} 
+                  style={pdfTheme === 'modern' ? styles.miniBtnActive : styles.miniBtnInactive}
+                >
+                  Modern
+                </button>
+                <button 
+                  type="button" 
+                  onClick={() => setPdfTheme('classic-studio')} 
+                  style={pdfTheme === 'classic-studio' ? styles.miniBtnActive : styles.miniBtnInactive}
+                >
+                  Classic Studio
+                </button>
+              </div>
+              <div style={{ display: 'flex', gap: '4px' }}>
+                <button 
+                  type="button" 
+                  onClick={() => {
+                    if (isPro) {
+                      setPdfTheme('real-book');
+                    } else {
+                      setShowUpgradeModal(true);
+                    }
+                  }} 
+                  style={{
+                    ...(pdfTheme === 'real-book' ? styles.miniBtnActive : styles.miniBtnInactive),
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '4px'
+                  }}
+                >
+                  {!isPro && <span>🔒</span>} Real Book
+                </button>
+                <button 
+                  type="button" 
+                  onClick={() => {
+                    if (isPro) {
+                      setPdfTheme('elegance');
+                    } else {
+                      setShowUpgradeModal(true);
+                    }
+                  }} 
+                  style={{
+                    ...(pdfTheme === 'elegance' ? styles.miniBtnActive : styles.miniBtnInactive),
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '4px'
+                  }}
+                >
+                  {!isPro && <span>🔒</span>} Elegance
+                </button>
+                <button 
+                  type="button" 
+                  onClick={() => {
+                    if (isPro) {
+                      setPdfTheme('minimalist');
+                    } else {
+                      setShowUpgradeModal(true);
+                    }
+                  }} 
+                  style={{
+                    ...(pdfTheme === 'minimalist' ? styles.miniBtnActive : styles.miniBtnInactive),
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '4px'
+                  }}
+                >
+                  {!isPro && <span>🔒</span>} Minimalist
+                </button>
+              </div>
+            </div>
+
+            {/* Pro Chord Accent Color Selector */}
+            <div style={{ marginBottom: '16px' }}>
+              <label style={{ ...styles.label, textAlign: 'center' }}>
+                {!isPro && <span style={{ marginRight: '4px' }}>🔒</span>} Chord Accent Color
+              </label>
+              <div style={{ display: 'flex', gap: '6px', alignItems: 'center', justifyContent: 'center' }}>
+                {[
+                  { name: 'Black', value: '#111827' },
+                  { name: 'Red', value: '#DC2626' },
+                  { name: 'Blue', value: '#2563EB' },
+                  { name: 'Green', value: '#16A34A' },
+                  { name: 'Yellow', value: '#EAB308' }
+                ].map((color) => {
+                  const isSelected = isPro ? chordAccentColor === color.value : color.value === '#111827';
+                  return (
+                    <button
+                      key={color.value}
+                      type="button"
+                      onClick={() => {
+                        if (isPro) {
+                          setChordAccentColor(color.value);
+                        } else {
+                          setShowUpgradeModal(true);
+                        }
+                      }}
+                      title={color.name}
+                      style={{
+                        width: '28px',
+                        height: '28px',
+                        borderRadius: '50%',
+                        backgroundColor: color.value,
+                        border: isSelected 
+                          ? `3px solid ${isLightMode ? '#3b82f6' : '#60a5fa'}` 
+                          : `1px solid ${isLightMode ? '#d1d5db' : '#4b5563'}`,
+                        cursor: 'pointer',
+                        padding: 0,
+                        boxShadow: isSelected ? '0 0 4px rgba(59, 130, 246, 0.5)' : 'none',
+                        transition: 'transform 0.1s',
+                        transform: isSelected ? 'scale(1.1)' : 'scale(1)'
+                      }}
+                    />
+                  );
+                })}
+              </div>
             </div>
 
             <div style={{ padding: '14px', backgroundColor: isLightMode ? '#eff6ff' : '#27272a', borderRadius: '8px', marginBottom: '16px', border: '1px solid #3b82f6', textAlign: 'center' }}>
@@ -1530,10 +1708,18 @@ export default function App() {
 
                 <button 
                   type="button" 
-                  onClick={() => setIsLightMode(!isLightMode)} 
-                  style={{ background: 'none', border: `1px solid ${isLightMode ? '#d1d5db' : '#3f3f46'}`, color: isLightMode ? '#111827' : '#e4e4e7', padding: '4px 8px', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold' }}
+                  onClick={() => {
+                    if (!isPro) {
+                      setShowUpgradeModal(true);
+                      setIsLightMode(true);
+                    } else {
+                      setIsLightMode(!isLightMode);
+                    }
+                  }} 
+                  style={{ background: 'none', border: `1px solid ${isLightMode ? '#d1d5db' : '#3f3f46'}`, color: isLightMode ? '#111827' : '#e4e4e7', padding: '4px 8px', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '4px' }}
                   title="Toggle Dark/Light Mode"
                 >
+                  {!isPro && <span style={{ fontSize: '10px' }}>🔒</span>}
                   {isLightMode ? '🌙' : '☀️'}
                 </button>
               </div>
@@ -1934,20 +2120,18 @@ export default function App() {
                               const originalChord = chordMap[w.id];
                               const displayChord = formatChordDisplay(originalChord, songKey, transSteps, displayFormat);
                               const isEmptyBeat = w.text === '_';
-                              let chordColor = '#1e3a8a';
-                              if (pdfTheme === 'classic') chordColor = '#000000';
-                              if (pdfTheme === 'jazz') chordColor = '#000000'; 
+                              let chordColor = isPro ? chordAccentColor : '#111827';
 
                               return (
-                                <div key={w.id} className="canvas-word" style={{ display: 'inline-flex', flexDirection: 'column', margin: '0 10px 0 0', minWidth: isEmptyBeat ? '30px' : '18px', pageBreakInside: 'avoid', breakInside: 'avoid' }}>
-                                  <div style={{ height: '18px', width: '100%', display: 'flex', justifyContent: 'flex-start', alignItems: 'center', marginBottom: '1px' }}>
+                                <div key={w.id} className="canvas-word" style={{ display: 'inline-flex', flexDirection: 'column', margin: pdfTheme === 'minimalist' ? '0 6px 0 0' : '0 10px 0 0', minWidth: isEmptyBeat ? (pdfTheme === 'minimalist' ? '22px' : '30px') : '18px', pageBreakInside: 'avoid', breakInside: 'avoid' }}>
+                                  <div style={{ height: pdfTheme === 'minimalist' ? '14px' : '18px', width: '100%', display: 'flex', justifyContent: 'flex-start', alignItems: 'center', marginBottom: '1px' }}>
                                     {displayChord && (
-                                      <span style={{ color: chordColor, fontSize: '14px', fontWeight: 'bold', fontFamily: getThemeFont(pdfTheme) }}>
+                                      <span style={{ color: chordColor, fontSize: pdfTheme === 'minimalist' ? '12px' : '14px', fontWeight: 'bold', fontFamily: getThemeFont(pdfTheme) }}>
                                         {displayChord}
                                       </span>
                                     )}
                                   </div>
-                                  <div className="word-text" style={{ fontSize: '12pt', color: isEmptyBeat ? 'transparent' : '#111827', whiteSpace: 'pre', fontFamily: getThemeFont(pdfTheme), fontWeight: line.isBold ? 'bold' : undefined }}>
+                                  <div className="word-text" style={{ fontSize: pdfTheme === 'minimalist' ? '10pt' : '12pt', color: isEmptyBeat ? 'transparent' : '#111827', whiteSpace: 'pre', fontFamily: getThemeFont(pdfTheme), fontWeight: line.isBold ? 'bold' : undefined }}>
                                     {isEmptyBeat ? '_' : w.text}
                                   </div>
                                 </div>
