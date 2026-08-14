@@ -3,6 +3,45 @@ import { DndContext, useDraggable, useDroppable, useSensor, useSensors, PointerS
 import html2pdf from 'html2pdf.js';
 import { SignedIn, SignedOut, SignUpButton, UserButton, useUser, useClerk } from '@clerk/clerk-react';
 
+const LockIcon = ({ size = 12, style = {}, className = "" }) => (
+  <svg 
+    xmlns="http://www.w3.org/2000/svg" 
+    width={size} 
+    height={size} 
+    viewBox="0 0 24 24" 
+    fill="none" 
+    stroke="currentColor" 
+    strokeWidth="2.5" 
+    strokeLinecap="round" 
+    strokeLinejoin="round" 
+    className={className}
+    style={{ display: 'inline-block', verticalAlign: 'middle', ...style }}
+  >
+    <rect width="18" height="11" x="3" y="11" rx="2" ry="2" />
+    <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+  </svg>
+);
+
+const SparklesIcon = ({ size = 14, style = {}, className = "" }) => (
+  <svg 
+    xmlns="http://www.w3.org/2000/svg" 
+    width={size} 
+    height={size} 
+    viewBox="0 0 24 24" 
+    fill="none" 
+    stroke="currentColor" 
+    strokeWidth="2" 
+    strokeLinecap="round" 
+    strokeLinejoin="round" 
+    className={className}
+    style={{ display: 'inline-block', verticalAlign: 'middle', ...style }}
+  >
+    <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z" />
+    <path d="m5 3 1 2.5L8.5 6 6 7 5 9.5 4 7 1.5 6 4 5.5z" />
+    <path d="m19 17 1 2.5 2.5.5-2.5 1-1 2.5-1-2.5-2.5-1 2.5-1z" />
+  </svg>
+);
+
 // Reads a query param from the current URL without pulling in a router library.
 const getQueryParam = (name) => {
   if (typeof window === 'undefined') return null;
@@ -21,8 +60,8 @@ const removeQueryParam = (name) => {
 
 
 // --- STRIPE CHECKOUT LINKS ---
-const STRIPE_MONTHLY_URL = "https://buy.stripe.com/9B628seba8FuaAIcKfbMQ05";
-const STRIPE_ANNUAL_URL = "https://buy.stripe.com/aFa3cwc326xm5go25BbMQ06";
+const STRIPE_MONTHLY_URL = "https://buy.stripe.com/bJecN6c32g7W8sAbGbbMQ01";
+const STRIPE_ANNUAL_URL = "https://buy.stripe.com/fZu00k5EEbRG7owcKfbMQ00";
 
 // --- GLOBAL STYLES ---
 const globalStyles = `
@@ -1448,7 +1487,7 @@ export default function App() {
 
   const handleExportPDF = () => {
     if (!isPro && pdfTheme !== 'classic') {
-      alert("Free plan users can preview all styles, but PDF downloads are restricted to the Classic theme. Upgrade to Pro ($8.99/mo) for Modern & Jazz PDF downloads.");
+      alert("Free plan users can preview all styles, but PDF downloads are restricted to the Classic theme. Upgrade to Pro ($4.99/mo) for Modern & Jazz PDF downloads.");
       setPdfTheme('classic');
       return;
     }
@@ -1539,7 +1578,7 @@ export default function App() {
                 <SignedOut>
                   <SignUpButton mode="modal">
                     <button type="button" style={{ padding: '6px 12px', backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold', fontFamily: "'Cal Sans', sans-serif", whiteSpace: 'nowrap' }}>
-                      Sign Up
+                      Sign Up / Sign In
                     </button>
                   </SignUpButton>
                 </SignedOut>
@@ -1589,12 +1628,16 @@ export default function App() {
                   style={{
                     ...(pdfTheme === 'real-book' ? styles.miniBtnActive : styles.miniBtnInactive),
                     display: 'flex',
+                    flexDirection: 'column',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    gap: '4px'
+                    gap: '2px',
+                    opacity: !isPro ? 0.8 : 1,
+                    border: !isPro ? `1px dashed ${isLightMode ? '#cbd5e1' : '#4b5563'}` : undefined
                   }}
                 >
-                  {!isPro && <span>🔒</span>} Real Book
+                  {!isPro && <LockIcon size={10} style={{ opacity: 0.6 }} />}
+                  <span>Real Book</span>
                 </button>
                 <button 
                   type="button" 
@@ -1608,12 +1651,16 @@ export default function App() {
                   style={{
                     ...(pdfTheme === 'elegance' ? styles.miniBtnActive : styles.miniBtnInactive),
                     display: 'flex',
+                    flexDirection: 'column',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    gap: '4px'
+                    gap: '2px',
+                    opacity: !isPro ? 0.8 : 1,
+                    border: !isPro ? `1px dashed ${isLightMode ? '#cbd5e1' : '#4b5563'}` : undefined
                   }}
                 >
-                  {!isPro && <span>🔒</span>} Elegance
+                  {!isPro && <LockIcon size={10} style={{ opacity: 0.6 }} />}
+                  <span>Elegance</span>
                 </button>
                 <button 
                   type="button" 
@@ -1627,20 +1674,24 @@ export default function App() {
                   style={{
                     ...(pdfTheme === 'minimalist' ? styles.miniBtnActive : styles.miniBtnInactive),
                     display: 'flex',
+                    flexDirection: 'column',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    gap: '4px'
+                    gap: '2px',
+                    opacity: !isPro ? 0.8 : 1,
+                    border: !isPro ? `1px dashed ${isLightMode ? '#cbd5e1' : '#4b5563'}` : undefined
                   }}
                 >
-                  {!isPro && <span>🔒</span>} Minimalist
+                  {!isPro && <LockIcon size={10} style={{ opacity: 0.6 }} />}
+                  <span>Minimalist</span>
                 </button>
               </div>
             </div>
 
             {/* Pro Chord Accent Color Selector */}
             <div style={{ marginBottom: '16px' }}>
-              <label style={{ ...styles.label, textAlign: 'center' }}>
-                {!isPro && <span style={{ marginRight: '4px' }}>🔒</span>} Chord Accent Color
+              <label style={{ ...styles.label, textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
+                {!isPro && <LockIcon size={11} style={{ opacity: 0.6 }} />} Chord Accent Color
               </label>
               <div style={{ display: 'flex', gap: '6px', alignItems: 'center', justifyContent: 'center' }}>
                 {[
@@ -1684,8 +1735,8 @@ export default function App() {
             </div>
 
             <div style={{ padding: '14px', backgroundColor: isLightMode ? '#eff6ff' : '#27272a', borderRadius: '8px', marginBottom: '16px', border: '1px solid #3b82f6', textAlign: 'center' }}>
-              <div style={{ fontSize: '14px', fontWeight: 'bold', marginBottom: '6px', color: isLightMode ? '#1e40af' : '#60a5fa' }}>
-                {isPro ? '✨ Pro Tier Active' : '🔒 Free Plan (Watermarked PDFs)'}
+              <div style={{ fontSize: '14px', fontWeight: 'bold', marginBottom: '6px', color: isLightMode ? '#1e40af' : '#60a5fa', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+                {isPro ? (<><SparklesIcon size={14} /> Pro Tier Active</>) : 'Free Plan (Watermarked PDFs)'}
               </div>
               <div style={{ fontSize: '12px', color: isLightMode ? '#4b5563' : '#a1a1aa', marginBottom: '12px', textWrap: 'balance', lineHeight: '1.3' }}>
                 {isPro ? 'Unlimited charts, transposing, ChordPro exports & clean PDFs active.' : 'Upgrade to Pro for ChordPro exports, transposing & clean PDFs.'}
@@ -1881,7 +1932,7 @@ export default function App() {
                   style={{ background: 'none', border: `1px solid ${isLightMode ? '#d1d5db' : '#3f3f46'}`, color: isLightMode ? '#111827' : '#e4e4e7', padding: '4px 8px', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '4px' }}
                   title="Toggle Dark/Light Mode"
                 >
-                  {!isPro && <span style={{ fontSize: '10px' }}>🔒</span>}
+                  {!isPro && <LockIcon size={11} style={{ opacity: 0.6 }} />}
                   {isLightMode ? '🌙' : '☀️'}
                 </button>
               </div>
@@ -1929,8 +1980,8 @@ export default function App() {
                 <input type="number" style={{...styles.input, marginBottom: 0}} value={capo} onChange={e => { saveSnapshot(); setCapo(e.target.value); }} placeholder="0" />
               </div>
               <div style={{ flex: 1 }} onClick={() => { if (!isPro) setShowUpgradeModal(true); }}>
-                <label style={{ ...styles.label, color: !isPro ? '#9ca3af' : (isLightMode ? '#4b5563' : '#a1a1aa') }}>
-                  {!isPro ? '🔒 Transpose' : 'Transpose'}
+                <label style={{ ...styles.label, color: !isPro ? '#9ca3af' : (isLightMode ? '#4b5563' : '#a1a1aa'), display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  {!isPro && <LockIcon size={11} style={{ opacity: 0.6 }} />} Transpose
                 </label>
                 <select 
                   disabled={!isPro}
@@ -2153,13 +2204,13 @@ export default function App() {
 
                 <div style={{ border: '2px solid #2563eb', borderRadius: '12px', padding: '16px', backgroundColor: '#eff6ff', position: 'relative' }}>
                   <span style={{ position: 'absolute', top: '-10px', right: '14px', backgroundColor: '#2563eb', color: '#ffffff', fontSize: '10px', fontWeight: 'bold', padding: '2px 8px', borderRadius: '10px' }}>
-                    SAVE 30%
+                    SAVE 33%
                   </span>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '4px' }}>
                     <span style={{ fontWeight: 'bold', color: '#0f172a', fontSize: '15px' }}>Annual Billing</span>
-                    <span style={{ fontSize: '20px', fontWeight: '800', color: '#2563eb' }}>$74.99<span style={{ fontSize: '12px', color: '#64748b', fontWeight: 'normal' }}>/yr</span></span>
+                    <span style={{ fontSize: '20px', fontWeight: '800', color: '#2563eb' }}>$39.99<span style={{ fontSize: '12px', color: '#64748b', fontWeight: 'normal' }}>/yr</span></span>
                   </div>
-                  <p style={{ fontSize: '11px', color: '#64748b', marginBottom: '12px' }}>Billed as $74.99/year upfront (~$6.25/mo).</p>
+                  <p style={{ fontSize: '11px', color: '#64748b', marginBottom: '12px' }}>Billed as $39.99/year upfront (~$3.33/mo).</p>
                   <button
                     type="button"
                     onClick={handleUpgradeAnnual}
@@ -2172,7 +2223,7 @@ export default function App() {
                 <div style={{ border: '1px solid #e2e8f0', borderRadius: '12px', padding: '16px', backgroundColor: '#ffffff' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '4px' }}>
                     <span style={{ fontWeight: 'bold', color: '#0f172a', fontSize: '15px' }}>Monthly Billing</span>
-                    <span style={{ fontSize: '20px', fontWeight: 'bold', color: '#0f172a' }}>$8.99<span style={{ fontSize: '12px', color: '#64748b', fontWeight: 'normal' }}>/mo</span></span>
+                    <span style={{ fontSize: '20px', fontWeight: 'bold', color: '#0f172a' }}>$4.99<span style={{ fontSize: '12px', color: '#64748b', fontWeight: 'normal' }}>/mo</span></span>
                   </div>
                   <p style={{ fontSize: '11px', color: '#64748b', marginBottom: '12px' }}>Pay month-to-month. Cancel anytime.</p>
                   <button
@@ -2194,12 +2245,12 @@ export default function App() {
             <div style={{ backgroundColor: '#ffffff', color: '#111827', width: '100%', maxWidth: '800px', height: '85vh', borderRadius: '12px', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.5)' }}>
               
               <div style={{ padding: '16px 24px', backgroundColor: '#f3f4f6', borderBottom: '1px solid #e5e7eb', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontWeight: '600', fontSize: '16px' }}>
-                  Export Chart ({pdfTheme.toUpperCase()} Style) {!isPro && '— 🔒 Free Preview'}
+                <span style={{ fontWeight: '600', fontSize: '16px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  Export Chart ({pdfTheme.toUpperCase()} Style) {!isPro && (<><span>—</span> <LockIcon size={13} style={{ opacity: 0.7 }} /> <span>Free Preview</span></>)}
                 </span>
                 <div style={{ display: 'flex', gap: '12px' }}>
                   <button type="button" onClick={() => setShowPreview(false)} style={{ padding: '8px 16px', backgroundColor: '#e5e5eb', color: '#374151', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '600' }}>Cancel (Esc)</button>
-                  <button type="button" onClick={handleExportChordPro} style={{ padding: '8px 16px', backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '600' }}>{!isPro && '🔒 '}Export ChordPro</button>
+                  <button type="button" onClick={handleExportChordPro} style={{ padding: '8px 16px', backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '6px' }}>{!isPro && <LockIcon size={12} />}Export ChordPro</button>
                   <button type="button" onClick={handleExportPDF} style={{ padding: '8px 16px', backgroundColor: '#10b981', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '600' }}>Confirm & Download PDF</button>
                 </div>
               </div>
@@ -2232,7 +2283,7 @@ export default function App() {
                       boxShadow: '0 10px 25px rgba(0,0,0,0.2)',
                       maxWidth: '420px'
                     }}>
-                      <div style={{ fontSize: '28px', marginBottom: '8px' }}>🔒</div>
+                      <div style={{ marginBottom: '8px', display: 'flex', justifyContent: 'center' }}><LockIcon size={28} /></div>
                       <h3 style={{ fontSize: '18px', fontWeight: 'bold', marginBottom: '8px' }}>Preview Blurred</h3>
                       <p style={{ fontSize: '13px', color: '#94A3B8', marginBottom: '16px', lineHeight: '1.4', textWrap: 'balance' }}>
                         Upgrade to <strong>Pro</strong> to view full unblurred previews and download clean, watermark-free PDFs.
