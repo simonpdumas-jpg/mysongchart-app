@@ -1578,7 +1578,7 @@ export default function App() {
                 <SignedOut>
                   <SignUpButton mode="modal">
                     <button type="button" style={{ padding: '6px 12px', backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold', fontFamily: "'Cal Sans', sans-serif", whiteSpace: 'nowrap' }}>
-                      Sign Up / Sign In
+                      Sign Up
                     </button>
                   </SignUpButton>
                 </SignedOut>
