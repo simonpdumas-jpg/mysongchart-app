@@ -1009,8 +1009,9 @@ export default function App() {
   };
 
   useEffect(() => {
-    document.title = "MySongChart";
+    document.title = "MySongChart - App";
   }, []);
+
 
   // Global Pro status check: unlocks all Pro features anywhere in the app the
   // moment either legacy `isPro` or the new `stripeRole: 'pro'` flag is found
@@ -1786,13 +1787,10 @@ export default function App() {
           <div className={`column-center ${activeMobileTab === 'chart' ? 'mobile-show-active' : 'mobile-hide'}`} style={{ ...styles.columnCenter, flex: 1 }} onClick={() => setFocusedWordId(null)}>
 
             <div id="action-bar" style={{ display: 'flex', gap: '10px', alignItems: 'center', justifyContent: 'center', marginBottom: '24px', flexWrap: 'wrap', width: '100%' }}>
-              <button type="button" className="top-action-btn" style={styles.actionButton} onClick={handleNewChart}>
+              <button type="button" className="top-action-btn" style={{ ...styles.actionButton, flex: 1, maxWidth: '140px', textAlign: 'center' }} onClick={handleNewChart}>
                 ➕ New
               </button>
-              <button type="button" className="top-action-btn" style={styles.actionButton} onClick={() => fileInputRef.current.click()}>
-                📂 Load
-              </button>
-              <button type="button" className="top-action-btn" style={styles.actionButton} onClick={() => setShowPreview(true)} title="Shortcut: Cmd+E / Ctrl+E">
+              <button type="button" className="top-action-btn" style={{ ...styles.actionButton, flex: 1, maxWidth: '140px', textAlign: 'center' }} onClick={() => setShowPreview(true)} title="Shortcut: Cmd+E / Ctrl+E">
                 📤 Export
               </button>
               <div style={{ width: '1px', height: '20px', backgroundColor: isLightMode ? '#d1d5db' : '#3f3f46', margin: '0 4px' }} />
@@ -1801,7 +1799,10 @@ export default function App() {
                 className="top-action-btn" 
                 style={{ 
                   ...styles.actionButton,
+                  flex: 1,
+                  maxWidth: '140px',
                   padding: '8px 12px',
+                  textAlign: 'center',
                   opacity: history.length === 0 ? 0.5 : 1, 
                   cursor: history.length === 0 ? 'not-allowed' : 'pointer',
                 }} 
@@ -1816,7 +1817,10 @@ export default function App() {
                 className="top-action-btn" 
                 style={{ 
                   ...styles.actionButton,
+                  flex: 1,
+                  maxWidth: '140px',
                   padding: '8px 12px',
+                  textAlign: 'center',
                   opacity: redoStack.length === 0 ? 0.5 : 1, 
                   cursor: redoStack.length === 0 ? 'not-allowed' : 'pointer',
                 }} 
@@ -1827,6 +1831,8 @@ export default function App() {
                 ↪️
               </button>
             </div>            
+
+
             <div style={{ paddingBottom: '12px', marginBottom: '20px', borderBottom: `2px solid ${isLightMode ? '#e5e7eb' : '#27272a'}` }}>
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '6px' }}>
                 <h1 style={{ ...styles.songTitleStyle, fontFamily: getThemeFont(pdfTheme) }}>
