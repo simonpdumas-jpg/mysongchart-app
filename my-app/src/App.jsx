@@ -164,8 +164,12 @@ const globalStyles = `
     .mobile-resizer {
       display: none !important;
     }
+    .mobile-desktop-banner {
+      display: flex !important;
+    }
   }
 `;
+
 
 // --- THEME ENGINE ---
 const getStyles = (isLight, pdfTheme) => {
@@ -825,6 +829,16 @@ export default function App() {
 
   const [isLightMode, setIsLightMode] = useState(true);
   const [activeMobileTab, setActiveMobileTab] = useState('chart');
+  const [showMobileDesktopNotice, setShowMobileDesktopNotice] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    return localStorage.getItem('mySongChart_dismissedMobileNotice') !== 'true';
+  });
+
+  const dismissMobileDesktopNotice = () => {
+    setShowMobileDesktopNotice(false);
+    localStorage.setItem('mySongChart_dismissedMobileNotice', 'true');
+  };
+
 
   const pointerSensor = useSensor(PointerSensor);
   const touchSensor = useSensor(TouchSensor, {
@@ -1530,7 +1544,55 @@ export default function App() {
         
         <input type="file" accept=".json" ref={fileInputRef} style={{ display: 'none' }} onChange={handleLoadSession} />
 
+        {/* MOBILE-ONLY: Best on desktop notice, dismissible, non-blocking */}
+        {showMobileDesktopNotice && (
+          <div
+            className="mobile-desktop-banner"
+            style={{
+              display: 'none',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: '10px',
+              backgroundColor: '#fef3c7',
+              color: '#92400e',
+              borderBottom: '1px solid #fde68a',
+              padding: '8px 14px',
+              fontSize: '12px',
+              fontFamily: "'Cal Sans', sans-serif",
+              flexShrink: 0,
+              zIndex: 150,
+              width: '100%',
+              boxSizing: 'border-box',
+              alignSelf: 'stretch',
+            }}
+          >
+
+            <span style={{ lineHeight: '1.3' }}>
+              🖥️ MySongChart works best on desktop. Mobile support is limited.
+            </span>
+            <button
+              type="button"
+              onClick={dismissMobileDesktopNotice}
+              aria-label="Dismiss"
+              style={{
+                background: 'none',
+                border: 'none',
+                color: '#92400e',
+                fontSize: '16px',
+                fontWeight: 'bold',
+                cursor: 'pointer',
+                flexShrink: 0,
+                padding: '0 2px',
+                lineHeight: '1',
+              }}
+            >
+              ✕
+            </button>
+          </div>
+        )}
+
         {/* MOBILE TAB BAR */}
+
         <div 
           className="mobile-tab-bar" 
           style={{ 
@@ -1563,7 +1625,7 @@ export default function App() {
                 textTransform: 'capitalize',
               }}
             >
-              {tab === 'lyrics' ? '📝 Lyrics' : tab === 'chart' ? '📊 Chart' : '🎨 Palette'}
+              {tab === 'lyrics' ? 'Lyrics' : tab === 'chart' ? 'Canvas' : 'Palette'}
             </button>
           ))}
         </div>
