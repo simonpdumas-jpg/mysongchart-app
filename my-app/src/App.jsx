@@ -1561,8 +1561,12 @@ export default function App() {
               fontFamily: "'Cal Sans', sans-serif",
               flexShrink: 0,
               zIndex: 150,
+              width: '100%',
+              boxSizing: 'border-box',
+              alignSelf: 'stretch',
             }}
           >
+
             <span style={{ lineHeight: '1.3' }}>
               🖥️ MySongChart works best on desktop. Mobile support is limited.
             </span>
