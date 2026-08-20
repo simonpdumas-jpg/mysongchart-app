@@ -224,11 +224,12 @@ const getStyles = (isLight, pdfTheme) => {
   };
 };
 
-const transposeString = (chord, steps) => {
-  if (!chord || steps === 0) return chord;
+const transposeString = (chord, steps, preferFlats = null) => {
+  if (!chord) return chord;
+  if (steps === 0 && preferFlats === null) return chord;
   const sharps = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
   const flats = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B'];
-  
+
   return chord.replace(/[A-G][#b]?/g, (match) => {
     let index = sharps.indexOf(match);
     let wasFlat = false;
@@ -236,24 +237,25 @@ const transposeString = (chord, steps) => {
       index = flats.indexOf(match);
       wasFlat = true;
     }
-    if (index === -1) return match; 
-    
+    if (index === -1) return match;
+
     let newIndex = (index + steps) % 12;
     if (newIndex < 0) newIndex += 12;
-    
-    return wasFlat ? flats[newIndex] : sharps[newIndex];
+
+    const useFlat = preferFlats !== null ? preferFlats : wasFlat;
+    return useFlat ? flats[newIndex] : sharps[newIndex];
   });
 };
 
-const transposeStoredChord = (chord, steps) => {
+const transposeStoredChord = (chord, steps, preferFlats = null) => {
   if (!chord || steps === 0) return chord;
   const { root, suffix, slash } = parseChordInputString(chord);
-  
-  const transposedRoot = transposeString(root, steps);
+
+  const transposedRoot = transposeString(root, steps, preferFlats);
   let transposedSlash = '';
   if (slash && slash !== '/') {
     const slashRoot = parseSlashRoot(slash);
-    transposedSlash = '/' + transposeString(slashRoot, steps);
+    transposedSlash = '/' + transposeString(slashRoot, steps, preferFlats);
   } else if (slash === '/') {
     transposedSlash = '/';
   }
@@ -350,7 +352,7 @@ const parseSlashRoot = (slashStr) => {
   return slashStr.startsWith('/') ? slashStr.substring(1) : slashStr;
 };
 
-const convertRootToStandardLetter = (rootStr, currentKey, transSteps) => {
+const convertRootToStandardLetter = (rootStr, currentKey, transSteps, preferFlats = null) => {
   if (!rootStr) return { note: '', isMinorRoman: false };
 
   const sharps = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
@@ -369,7 +371,8 @@ const convertRootToStandardLetter = (rootStr, currentKey, transSteps) => {
     calcIndex = (rootIndex + 3) % 12;
   }
 
-  const useFlats = ['F', 'Bb', 'Eb', 'Ab', 'Db', 'Gb', 'Dm', 'Gm', 'Cm', 'Fm', 'Bbm'].includes(cleanKey);
+  const defaultUseFlats = ['F', 'Bb', 'Eb', 'Ab', 'Db', 'Gb', 'Dm', 'Gm', 'Cm', 'Fm', 'Bbm'].includes(cleanKey);
+  const useFlats = preferFlats !== null ? preferFlats : defaultUseFlats;
   const scale = useFlats ? flats : sharps;
   const getNoteFromIndex = (idx) => scale[(idx + 12) % 12];
 
@@ -469,11 +472,11 @@ const formatRootDisplay = (root, currentKey, format, suffix) => {
   }
 };
 
-const formatChordDisplay = (originalChord, currentKey, transSteps, format) => {
+const formatChordDisplay = (originalChord, currentKey, transSteps, format, preferFlats = null) => {
   if (!originalChord) return originalChord;
 
   if (format === 'letters') {
-    return transposeString(originalChord, transSteps);
+    return transposeString(originalChord, transSteps, preferFlats);
   }
 
   const { root, suffix, slash } = parseChordInputString(originalChord);
@@ -500,12 +503,12 @@ const formatChordDisplay = (originalChord, currentKey, transSteps, format) => {
   return displayRoot + displaySuffix + displaySlash;
 };
 
-const parseChordStringToStandardLetter = (inputStr, currentKey, transSteps, _currentFormat) => {
+const parseChordStringToStandardLetter = (inputStr, currentKey, transSteps, _currentFormat, preferFlats = null) => {
   if (!inputStr) return inputStr;
 
   const { root, suffix, slash } = parseChordInputString(inputStr);
 
-  const parsedRoot = convertRootToStandardLetter(root, currentKey, transSteps);
+  const parsedRoot = convertRootToStandardLetter(root, currentKey, transSteps, preferFlats);
   let mainNote = parsedRoot.note;
   let finalSuffix = suffix;
 
@@ -518,7 +521,7 @@ const parseChordStringToStandardLetter = (inputStr, currentKey, transSteps, _cur
   let finalSlash = '';
   if (slash && slash !== '/') {
     const slashRoot = parseSlashRoot(slash);
-    const parsedSlash = convertRootToStandardLetter(slashRoot, currentKey, transSteps);
+    const parsedSlash = convertRootToStandardLetter(slashRoot, currentKey, transSteps, preferFlats);
     finalSlash = '/' + parsedSlash.note;
   } else if (slash === '/') {
     finalSlash = '/';
@@ -527,7 +530,25 @@ const parseChordStringToStandardLetter = (inputStr, currentKey, transSteps, _cur
   return mainNote + finalSuffix + finalSlash;
 };
 
-const getScaleChords = (keyInput) => {
+// Determines whether a key's diatonic/derived chords should default to flat
+// spelling (e.g. Eb, Bbm) vs sharp (e.g. C#, F#m), absent any explicit override.
+const getKeyDefaultPrefersFlats = (keyInput) => {
+  const cleanKey = (keyInput || 'G').trim();
+  const root = cleanKey.replace(/m$/, '');
+
+  const sharps = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+  const flats = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B'];
+
+  let useFlats = sharps.indexOf(root) === -1 && flats.indexOf(root) !== -1;
+
+  if (['F', 'Bb', 'Eb', 'Ab', 'Db', 'Gb', 'Dm', 'Gm', 'Cm', 'Fm', 'Bbm'].includes(cleanKey)) {
+    useFlats = true;
+  }
+
+  return useFlats;
+};
+
+const getScaleChords = (keyInput, preferFlatsOverride = null) => {
   const cleanKey = (keyInput || 'G').trim();
   const isMinor = cleanKey.endsWith('m');
   const root = cleanKey.replace(/m$/, '');
@@ -536,16 +557,10 @@ const getScaleChords = (keyInput) => {
   const flats = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B'];
 
   let rootIndex = sharps.indexOf(root);
-  let useFlats = false;
-  if (rootIndex === -1) {
-    rootIndex = flats.indexOf(root);
-    useFlats = true;
-  }
-  if (rootIndex === -1) rootIndex = 7; 
+  if (rootIndex === -1) rootIndex = flats.indexOf(root);
+  if (rootIndex === -1) rootIndex = 7;
 
-  if (['F', 'Bb', 'Eb', 'Ab', 'Db', 'Gb', 'Dm', 'Gm', 'Cm', 'Fm', 'Bbm'].includes(cleanKey)) {
-      useFlats = true;
-  }
+  let useFlats = preferFlatsOverride !== null ? preferFlatsOverride : getKeyDefaultPrefersFlats(keyInput);
 
   const scale = useFlats ? flats : sharps;
   const intervals = isMinor ? [0, 2, 3, 5, 7, 8, 10] : [0, 2, 4, 5, 7, 9, 11];
@@ -912,8 +927,21 @@ export default function App() {
   const [songKey, setSongKey] = useState("G");
   const [capo, setCapo] = useState("0");
   const [transpose, setTranspose] = useState("0");
-  
+  const [preferFlats, setPreferFlats] = useState(null);
+
   const transSteps = parseInt(transpose, 10) || 0;
+
+  const AMBIGUOUS_ROOTS = ['C#', 'D#', 'F#', 'G#', 'A#', 'Db', 'Eb', 'Gb', 'Ab', 'Bb'];
+  const isAmbiguousRoot = (note) => AMBIGUOUS_ROOTS.includes(note);
+
+  const effectiveKey = transposeString(songKey || "G", transSteps, preferFlats);
+  const effectiveKeyRoot = effectiveKey.replace(/m$/, '');
+  const showPreferFlatsToggle = isAmbiguousRoot(effectiveKeyRoot);
+  const activePrefersFlats = preferFlats !== null ? preferFlats : effectiveKeyRoot.includes('b');
+
+  useEffect(() => {
+    setPreferFlats(null);
+  }, [songKey, transpose]);
   
   const [inputText, setInputText] = useState("Verse 1\nLookin' in your eyes, I see a paradise _ _\nThis world that I found is too good to be true _\nStanding here beside you, want so much to give you _\nThis love in my heart that I'm feeling for you _\n\nChorus\nAnd we can build this dream together _ _\nStanding strong forever _\nNothing's gonna stop us now _");
   
@@ -932,6 +960,12 @@ export default function App() {
 
   const [focusedWordId, setFocusedWordId] = useState(null);
   const [isAltPressed, setIsAltPressed] = useState(false);
+
+  // Baseline captured when the Key input gains focus, so mid-edit keystrokes
+  // (e.g. after clearing the field) always re-derive the transpose from the
+  // key/chordMap as they were before this edit session, not from whatever
+  // partial/invalid value the previous keystroke left behind.
+  const keyEditBaselineRef = useRef(null);
 
   // --- UNDO / REDO HISTORY ENGINE ---
   const [history, setHistory] = useState([]);
@@ -1331,7 +1365,7 @@ export default function App() {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'c') {
         e.preventDefault();
         const stored = chordMap[focusedWordId] || '';
-        const displayed = transposeString(stored, transSteps);
+        const displayed = transposeString(stored, transSteps, preferFlats);
         if (displayed) navigator.clipboard.writeText(displayed);
         return;
       }
@@ -1342,7 +1376,7 @@ export default function App() {
           if (text) {
             saveSnapshot();
             setChordMap(prev => {
-              const newStored = parseChordStringToStandardLetter(text.trim(), songKey, transSteps, displayFormat);
+              const newStored = parseChordStringToStandardLetter(text.trim(), songKey, transSteps, displayFormat, preferFlats);
               return { ...prev, [focusedWordId]: newStored };
             });
           }
@@ -1360,14 +1394,14 @@ export default function App() {
 
         saveSnapshot();
         setChordMap(prev => {
-          const currentDisplayed = formatChordDisplay(currentStored, songKey, transSteps, displayFormat) || '';
+          const currentDisplayed = formatChordDisplay(currentStored, songKey, transSteps, displayFormat, preferFlats) || '';
           const newDisplayed = currentDisplayed.slice(0, -1);
           if (newDisplayed === '') {
             const newMap = { ...prev };
             delete newMap[focusedWordId];
             return newMap;
           }
-          const newStored = parseChordStringToStandardLetter(newDisplayed, songKey, transSteps, displayFormat);
+          const newStored = parseChordStringToStandardLetter(newDisplayed, songKey, transSteps, displayFormat, preferFlats);
           return { ...prev, [focusedWordId]: newStored };
         });
         return;
@@ -1378,7 +1412,7 @@ export default function App() {
         saveSnapshot();
         setChordMap(prev => {
           const currentStored = prev[focusedWordId] || '';
-          const currentDisplayed = formatChordDisplay(currentStored, songKey, transSteps, displayFormat) || '';
+          const currentDisplayed = formatChordDisplay(currentStored, songKey, transSteps, displayFormat, preferFlats) || '';
           let char = e.key;
           if (currentDisplayed.length === 0 && /[a-z]/i.test(char)) {
             if (displayFormat === 'letters' || displayFormat === 'solfege') {
@@ -1386,7 +1420,7 @@ export default function App() {
             }
           }
           const newDisplayed = currentDisplayed + char;
-          const newStored = parseChordStringToStandardLetter(newDisplayed, songKey, transSteps, displayFormat);
+          const newStored = parseChordStringToStandardLetter(newDisplayed, songKey, transSteps, displayFormat, preferFlats);
           return { ...prev, [focusedWordId]: newStored };
         });
       }
@@ -1394,7 +1428,7 @@ export default function App() {
 
     window.addEventListener('keydown', handleTyping);
     return () => window.removeEventListener('keydown', handleTyping);
-  }, [focusedWordId, lyricLines, transSteps, chordMap]);
+  }, [focusedWordId, lyricLines, transSteps, chordMap, songKey, displayFormat, preferFlats]);
 
   useEffect(() => {
     setLyricLines(processLinesLogic(inputText));
@@ -1431,7 +1465,7 @@ export default function App() {
 
   const addCustomChord = () => {
     const chord = builtChordAbsolute;
-    const currentScale = getScaleChords(songKey);
+    const currentScale = getScaleChords(songKey, preferFlats);
     if (chord && !currentScale.includes(chord) && !customPalette.includes(chord)) {
       saveSnapshot();
       setCustomPalette([...customPalette, chord]);
@@ -1527,7 +1561,7 @@ export default function App() {
     });
   };
 
-  const scaleChords = getScaleChords(songKey);
+  const scaleChords = getScaleChords(songKey, preferFlats);
 
   const getThemeFont = (theme) => {
     if (theme === 'classic-studio') return "'Roboto Mono', 'Courier New', Courier, monospace";
@@ -1907,12 +1941,52 @@ export default function App() {
                   )}
                 </div>
               </div>
+
+              {showPreferFlatsToggle && (
+                <div className="mobile-hide" style={{ display: 'flex', justifyContent: 'center', gap: '4px', marginBottom: '6px' }}>
+                  <button
+                    type="button"
+                    onClick={() => setPreferFlats(false)}
+                    title="Prefer sharp spelling"
+                    style={{
+                      padding: '2px 10px',
+                      fontSize: '12px',
+                      fontWeight: 'bold',
+                      borderRadius: '4px',
+                      cursor: 'pointer',
+                      border: `1px solid ${isLightMode ? '#d1d5db' : '#3f3f46'}`,
+                      backgroundColor: !activePrefersFlats ? '#3b82f6' : (isLightMode ? '#f9fafb' : '#27272a'),
+                      color: !activePrefersFlats ? 'white' : (isLightMode ? '#4b5563' : '#a1a1aa'),
+                    }}
+                  >
+                    ♯
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPreferFlats(true)}
+                    title="Prefer flat spelling"
+                    style={{
+                      padding: '2px 10px',
+                      fontSize: '12px',
+                      fontWeight: 'bold',
+                      borderRadius: '4px',
+                      cursor: 'pointer',
+                      border: `1px solid ${isLightMode ? '#d1d5db' : '#3f3f46'}`,
+                      backgroundColor: activePrefersFlats ? '#3b82f6' : (isLightMode ? '#f9fafb' : '#27272a'),
+                      color: activePrefersFlats ? 'white' : (isLightMode ? '#4b5563' : '#a1a1aa'),
+                    }}
+                  >
+                    ♭
+                  </button>
+                </div>
+              )}
+
               <div style={{ textAlign: 'center', fontSize: '15px', fontWeight: 'bold', fontFamily: getThemeFont(pdfTheme) }}>
-                <div>Key - {transposeString(songKey || "G", transSteps)}</div>
+                <div>Key - {transposeString(songKey || "G", transSteps, preferFlats)}</div>
                 {capo && capo !== "0" && <div style={{ fontSize: '13px', fontWeight: 'normal', marginTop: '2px', color: '#4b5563' }}>Capo {capo}</div>}
               </div>
             </div>
-            
+
             {lyricLines.length === 0 ? (
               <p style={{ color: isLightMode ? '#9ca3af' : '#a1a1aa', textAlign: 'center', marginTop: '40px' }}>Paste your lyrics on the left and click "Map" to start charting.</p>
             ) : (
@@ -1928,10 +2002,10 @@ export default function App() {
                     <div key={line.id} className="lyric-line avoid-break" style={styles.lyricLine}>
                       {line.words.map(w => {
                         const originalChord = chordMap[w.id];
-                        const displayChord = formatChordDisplay(originalChord, songKey, transSteps, displayFormat);
+                        const displayChord = formatChordDisplay(originalChord, songKey, transSteps, displayFormat, preferFlats);
 
                         return (
-                          <DroppableWord 
+                          <DroppableWord
                             key={w.id} 
                             id={w.id} 
                             word={w.text} 
@@ -2017,21 +2091,30 @@ export default function App() {
             <div style={{ display: 'flex', gap: '8px', marginBottom: '24px' }}>
               <div style={{ flex: 1 }}>
                 <label style={styles.label}>Key</label>
-                <input 
-                  type="text" 
-                  style={{...styles.input, marginBottom: 0}} 
-                  value={songKey} 
+                <input
+                  type="text"
+                  style={{...styles.input, marginBottom: 0}}
+                  value={songKey}
+                  onFocus={() => {
+                    // Snapshot the key/chordMap as they were before this edit session
+                    // starts, so every keystroke re-derives the transpose from a stable
+                    // baseline instead of compounding on top of the previous keystroke's
+                    // (possibly invalid, e.g. mid-clear) partial result.
+                    keyEditBaselineRef.current = { key: songKey, chordMap };
+                  }}
                   onChange={e => {
                     saveSnapshot();
                     const newKey = e.target.value;
-                    const diff = getSemitoneDifference(songKey, newKey);
-                    if (diff !== 0 && Object.keys(chordMap).length > 0) {
-                      setChordMap(prev => {
+                    const baseline = keyEditBaselineRef.current || { key: songKey, chordMap };
+                    const diff = getSemitoneDifference(baseline.key, newKey);
+                    if (Object.keys(baseline.chordMap).length > 0) {
+                      const targetPrefersFlats = getKeyDefaultPrefersFlats(newKey);
+                      setChordMap(() => {
                         const newMap = {};
-                        Object.keys(prev).forEach(id => {
-                          const originalChord = prev[id];
+                        Object.keys(baseline.chordMap).forEach(id => {
+                          const originalChord = baseline.chordMap[id];
                           if (originalChord) {
-                            newMap[id] = transposeStoredChord(originalChord, diff);
+                            newMap[id] = transposeStoredChord(originalChord, diff, targetPrefersFlats);
                           }
                         });
                         return newMap;
@@ -2039,8 +2122,8 @@ export default function App() {
                     }
                     setSongKey(newKey);
                     setTranspose("0");
-                  }} 
-                  placeholder="G" 
+                  }}
+                  placeholder="G"
                 />
               </div>
               <div style={{ flex: 1 }}>
@@ -2063,9 +2146,12 @@ export default function App() {
                   value={transpose} 
                   onChange={e => { saveSnapshot(); setTranspose(e.target.value); }}
                 >
-                  {Array.from({ length: 25 }, (_, i) => i - 12).map(num => (
-                    <option key={num} value={num}>{num > 0 ? `+${num}` : num}</option>
-                  ))}
+                  {Array.from({ length: 25 }, (_, i) => i - 12).map(num => {
+                    const resultingKeyName = transposeString(songKey || "G", num, preferFlats);
+                    return (
+                      <option key={num} value={num}>{num > 0 ? `+${num}` : num} ({resultingKeyName})</option>
+                    );
+                  })}
                 </select>
               </div>
             </div>
@@ -2075,22 +2161,22 @@ export default function App() {
             </h3>
             <div style={{ display: 'flex', flexWrap: 'wrap', marginBottom: '24px' }}>
               {scaleChords.map(chord => (
-                <DraggableChord 
-                  key={`scale-${chord}`} 
-                  id={chord} 
-                  text={formatChordDisplay(chord, songKey, transSteps, displayFormat)} 
-                  baseText={chord} 
-                  isCustom={false} 
+                <DraggableChord
+                  key={`scale-${chord}`}
+                  id={chord}
+                  text={formatChordDisplay(chord, songKey, transSteps, displayFormat, preferFlats)}
+                  baseText={chord}
+                  isCustom={false}
                 />
               ))}
               {customPalette.map(chord => (
-                <DraggableChord 
-                  key={`custom-${chord}`} 
-                  id={chord} 
-                  text={formatChordDisplay(chord, songKey, transSteps, displayFormat)} 
-                  baseText={chord} 
-                  isCustom={true} 
-                  onDelete={deleteCustomChord} 
+                <DraggableChord
+                  key={`custom-${chord}`}
+                  id={chord}
+                  text={formatChordDisplay(chord, songKey, transSteps, displayFormat, preferFlats)}
+                  baseText={chord}
+                  isCustom={true}
+                  onDelete={deleteCustomChord}
                 />
               ))}
             </div>
@@ -2102,7 +2188,7 @@ export default function App() {
               <div style={styles.builderRow}>
                 {baseLetters.map(r => (
                   <button type="button" key={r} onClick={() => setBRoot(r)} style={bRoot === r ? styles.miniBtnActive : styles.miniBtnInactive}>
-                    {formatChordDisplay(r, songKey, transSteps, displayFormat)}
+                    {formatChordDisplay(r, songKey, transSteps, displayFormat, preferFlats)}
                   </button>
                 ))}
               </div>
@@ -2120,7 +2206,7 @@ export default function App() {
                   <option value="">None</option>
                   {baseLetters.map(b => (
                     <option key={b} value={b}>
-                      {formatChordDisplay(b, songKey, transSteps, displayFormat)}
+                      {formatChordDisplay(b, songKey, transSteps, displayFormat, preferFlats)}
                     </option>
                   ))}
                 </select>
@@ -2128,7 +2214,7 @@ export default function App() {
 
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '16px' }}>
                 <div style={{ flex: 1, textAlign: 'center', fontSize: '18px', fontWeight: 'bold', color: isLightMode ? '#111827' : 'white', backgroundColor: isLightMode ? '#ffffff' : '#18181b', padding: '8px', borderRadius: '4px', border: `1px solid ${isLightMode ? '#d1d5db' : '#3f3f46'}` }}>
-                  {formatChordDisplay(builtChordAbsolute, songKey, transSteps, displayFormat)}
+                  {formatChordDisplay(builtChordAbsolute, songKey, transSteps, displayFormat, preferFlats)}
                 </div>
                 <div style={{ flex: 1 }}>
                   <button type="button" onClick={addCustomChord} style={styles.addBtn}>+ Add</button>
@@ -2400,7 +2486,7 @@ export default function App() {
                           </div>
                         </div>
                         <div style={{ textAlign: 'right', fontSize: '15px', fontWeight: 'bold', color: '#111827', fontFamily: getThemeFont(pdfTheme) }}>
-                          <div>Key - {transposeString(songKey || "G", transSteps)}</div>
+                          <div>Key - {transposeString(songKey || "G", transSteps, preferFlats)}</div>
                           {capo && capo !== "0" && <div style={{ fontSize: '13px', fontWeight: 'normal', marginTop: '2px', color: '#4b5563' }}>Capo {capo}</div>}
                         </div>
                       </div>
@@ -2418,7 +2504,7 @@ export default function App() {
                           <div key={line.id} className="lyric-line avoid-break" style={{ display: 'flex', flexWrap: 'wrap', width: '100%', marginBottom: '8px', pageBreakInside: 'avoid', breakInside: 'avoid' }}>
                             {line.words.map(w => {
                               const originalChord = chordMap[w.id];
-                              const displayChord = formatChordDisplay(originalChord, songKey, transSteps, displayFormat);
+                              const displayChord = formatChordDisplay(originalChord, songKey, transSteps, displayFormat, preferFlats);
                               const isEmptyBeat = w.text === '_';
                               let chordColor = isPro ? chordAccentColor : '#111827';
 
