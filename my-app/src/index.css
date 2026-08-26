@@ -1,6 +1,52 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+/*
+ * Tailwind is listed as a dependency but isn't wired into the build (no
+ * postcss config / @tailwindcss vite plugin), so the old `@tailwind` at-rules
+ * below were dead weight: browsers silently drop unknown at-rules, so they
+ * shipped zero CSS and, in practice, this app had NO reset applied at all.
+ * Replacing them with a real, minimal reset below.
+ */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+  color: inherit;
+}
+
+button,
+input[type='text'],
+input[type='email'],
+input[type='number'],
+textarea {
+  -webkit-appearance: none;
+  appearance: none;
+  border-radius: 0;
+}
+
+button {
+  cursor: pointer;
+  background: none;
+  border: none;
+}
+
 :root {
   --text: #6b6375;
   --text-h: #08060d;
@@ -14,9 +60,9 @@
   --shadow:
     rgba(0, 0, 0, 0.1) 0 10px 15px -3px, rgba(0, 0, 0, 0.05) 0 4px 6px -2px;
 
-  --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --heading: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --mono: ui-monospace, Consolas, monospace;
+  --sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --heading: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --mono: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
 
   font: 18px/145% var(--sans);
   letter-spacing: 0.18px;
@@ -53,20 +99,13 @@
   }
 }
 
-body {
-  margin: 0;
-}
-
 #root {
-  width: 1126px;
-  max-width: 100%;
+  width: 100%;
+  max-width: 1800px;
   margin: 0 auto;
-  text-align: center;
-  border-inline: 1px solid var(--border);
   min-height: 100svh;
   display: flex;
   flex-direction: column;
-  box-sizing: border-box;
 }
 
 h1,

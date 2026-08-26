@@ -63,11 +63,16 @@ const removeQueryParam = (name) => {
 const STRIPE_MONTHLY_URL = "https://buy.stripe.com/bJecN6c32g7W8sAbGbbMQ01";
 const STRIPE_ANNUAL_URL = "https://buy.stripe.com/fZu00k5EEbRG7owcKfbMQ00";
 
+// Explicit fallback stack used everywhere 'Cal Sans' / 'Jost' is set, so text
+// still renders consistently across Chrome/Safari/Firefox if the webfont is
+// slow to load or blocked, instead of drifting to each OS's generic default.
+const FONT_STACK_SANS = "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif";
+
 // --- GLOBAL STYLES ---
 const globalStyles = `
   /* Force Cal Sans directly on App Brand Headers */
   .brand-title, .header-title {
-    font-family: 'Cal Sans', -apple-system, BlinkMacSystemFont, sans-serif !important;
+    font-family: 'Cal Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif !important;
     font-weight: 600 !important;
   }
 
@@ -111,6 +116,29 @@ const globalStyles = `
     background-color: rgba(120, 120, 120, 0.2) !important;
   }
 
+  /* Title/Artist/Songwriter editable fields on the chart: invisible until
+     hovered/focused so they read as plain text, not form fields. */
+  .inline-editable-input {
+    border: none;
+    border-bottom: 1px solid transparent;
+    background-color: transparent;
+    outline: none;
+    padding: 2px 6px;
+    border-radius: 4px;
+    transition: background-color 0.15s ease, border-color 0.15s ease;
+  }
+  .inline-editable-input::placeholder {
+    color: inherit;
+    opacity: 0.45;
+  }
+  .inline-editable-input:hover {
+    background-color: rgba(59, 130, 246, 0.08);
+  }
+  .inline-editable-input:focus {
+    background-color: rgba(59, 130, 246, 0.1);
+    border-bottom-color: #3b82f6;
+  }
+
   /* Diagonal Background Watermark for Free Tier Export */
   .watermark-overlay {
     position: absolute;
@@ -127,7 +155,7 @@ const globalStyles = `
   }
 
   .watermark-overlay span {
-    font-family: 'Cal Sans', sans-serif !important;
+    font-family: 'Cal Sans', ${FONT_STACK_SANS} !important;
     font-size: 78pt;
     font-weight: 700;
     color: rgba(0, 0, 0, 0.08); /* Soft, subtle opacity behind text */
@@ -173,49 +201,49 @@ const globalStyles = `
 
 // --- THEME ENGINE ---
 const getStyles = (isLight, pdfTheme) => {
-  let canvasFont = "'Cal Sans', sans-serif";
-  let titleFont = "'Cal Sans', sans-serif";
+  let canvasFont = `'Cal Sans', ${FONT_STACK_SANS}`;
+  let titleFont = `'Cal Sans', ${FONT_STACK_SANS}`;
   let spacingStyle = {};
 
   if (pdfTheme === 'classic-studio') {
-    canvasFont = "'Roboto Mono', 'Courier New', Courier, monospace";
-    titleFont = "'Roboto Mono', 'Courier New', Courier, monospace";
+    canvasFont = "'Roboto Mono', 'SFMono-Regular', Consolas, 'Courier New', Courier, monospace";
+    titleFont = "'Roboto Mono', 'SFMono-Regular', Consolas, 'Courier New', Courier, monospace";
   } else if (pdfTheme === 'real-book') {
     canvasFont = "'Architects Daughter', 'Caveat', cursive";
     titleFont = "'Architects Daughter', 'Caveat', cursive";
   } else if (pdfTheme === 'elegance') {
-    canvasFont = "'Lora', serif";
-    titleFont = "'Lora', serif";
+    canvasFont = "'Lora', Georgia, 'Times New Roman', serif";
+    titleFont = "'Lora', Georgia, 'Times New Roman', serif";
   } else if (pdfTheme === 'minimalist') {
-    canvasFont = "'Jost', sans-serif";
-    titleFont = "'Jost', sans-serif";
+    canvasFont = `'Jost', ${FONT_STACK_SANS}`;
+    titleFont = `'Jost', ${FONT_STACK_SANS}`;
     spacingStyle = {
       marginRight: '6px',
       marginBottom: '4px',
     };
   } else {
     // default: modern
-    canvasFont = "'Cal Sans', sans-serif";
-    titleFont = "'Cal Sans', sans-serif";
+    canvasFont = `'Cal Sans', ${FONT_STACK_SANS}`;
+    titleFont = `'Cal Sans', ${FONT_STACK_SANS}`;
   }
 
   return {
-    container: { display: 'flex', height: '100vh', fontFamily: "'Cal Sans', sans-serif", backgroundColor: isLight ? '#f3f4f6' : '#18181b', color: isLight ? '#1f2937' : '#e4e4e7', transition: 'all 0.3s' },
-    columnLeft: { padding: '24px', borderRight: `1px solid ${isLight ? '#e5e7eb' : '#27272a'}`, display: 'flex', flexDirection: 'column', height: '100vh', boxSizing: 'border-box', backgroundColor: isLight ? '#ffffff' : '#18181b', overflowY: 'auto' },
-    columnCenter: { flex: 1, padding: '40px', overflowY: 'auto', backgroundColor: isLight ? '#ffffff' : '#09090b', fontFamily: canvasFont, position: 'relative' },
-    columnRight: { padding: '24px', borderLeft: `1px solid ${isLight ? '#e5e7eb' : '#27272a'}`, backgroundColor: isLight ? '#ffffff' : '#18181b', overflowY: 'auto' },
-    header: { marginTop: 0, fontSize: '20px', fontWeight: '600', color: isLight ? '#111827' : '#f4f4f5', letterSpacing: '-0.5px', marginBottom: '16px', fontFamily: "'Cal Sans', sans-serif" },
-    subHeader: { fontSize: '14px', fontWeight: '600', color: isLight ? '#6b7280' : '#a1a1aa', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px', marginTop: '16px', fontFamily: "'Cal Sans', sans-serif" },
-    label: { fontSize: '13px', color: isLight ? '#4b5563' : '#a1a1aa', marginBottom: '4px', display: 'block', fontWeight: '500', fontFamily: "'Cal Sans', sans-serif", textWrap: 'balance' },
-    input: { width: '100%', boxSizing: 'border-box', marginBottom: '10px', padding: '10px', borderRadius: '6px', border: `1px solid ${isLight ? '#d1d5db' : '#3f3f46'}`, backgroundColor: isLight ? '#f9fafb' : '#27272a', color: isLight ? '#111827' : '#f4f4f5', fontSize: '14px', fontFamily: "'Cal Sans', sans-serif" },
+    container: { display: 'flex', height: '100vh', fontFamily: `'Cal Sans', ${FONT_STACK_SANS}`, backgroundColor: isLight ? '#f3f4f6' : '#18181b', color: isLight ? '#1f2937' : '#e4e4e7', transition: 'all 0.3s' },
+    columnLeft: { padding: '24px', borderRight: `1px solid ${isLight ? '#e5e7eb' : '#27272a'}`, display: 'flex', flexDirection: 'column', height: '100vh', minHeight: 0, boxSizing: 'border-box', backgroundColor: isLight ? '#ffffff' : '#18181b', overflowY: 'auto' },
+    columnCenter: { flex: 1, minWidth: 0, minHeight: 0, boxSizing: 'border-box', padding: '40px', overflowY: 'auto', backgroundColor: isLight ? '#ffffff' : '#09090b', fontFamily: canvasFont, position: 'relative' },
+    columnRight: { padding: '24px', minHeight: 0, boxSizing: 'border-box', borderLeft: `1px solid ${isLight ? '#e5e7eb' : '#27272a'}`, backgroundColor: isLight ? '#ffffff' : '#18181b', overflowY: 'auto' },
+    header: { marginTop: 0, fontSize: '20px', fontWeight: '600', color: isLight ? '#111827' : '#f4f4f5', letterSpacing: '-0.5px', marginBottom: '16px', fontFamily: `'Cal Sans', ${FONT_STACK_SANS}` },
+    subHeader: { fontSize: '14px', fontWeight: '600', color: isLight ? '#6b7280' : '#a1a1aa', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px', marginTop: '16px', fontFamily: `'Cal Sans', ${FONT_STACK_SANS}` },
+    label: { fontSize: '13px', color: isLight ? '#4b5563' : '#a1a1aa', marginBottom: '4px', display: 'block', fontWeight: '500', fontFamily: `'Cal Sans', ${FONT_STACK_SANS}`, textWrap: 'balance' },
+    input: { width: '100%', boxSizing: 'border-box', marginBottom: '10px', padding: '10px', borderRadius: '6px', border: `1px solid ${isLight ? '#d1d5db' : '#3f3f46'}`, backgroundColor: isLight ? '#f9fafb' : '#27272a', color: isLight ? '#111827' : '#f4f4f5', fontSize: '14px', fontFamily: `'Cal Sans', ${FONT_STACK_SANS}` },
     textArea: { width: '100%', boxSizing: 'border-box', display: 'block', marginTop: '0px', minHeight: '160px', height: '200px', maxHeight: 'none', marginBottom: '16px', padding: '12px', borderRadius: '6px', border: `1px solid ${isLight ? '#d1d5db' : '#3f3f46'}`, backgroundColor: isLight ? '#f9fafb' : '#27272a', color: isLight ? '#111827' : '#f4f4f5', fontSize: '14px', resize: 'vertical', lineHeight: '1.5', fontFamily: "'Courier New', Courier, monospace" },
-    button: { width: '100%', padding: '12px', backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '14px', fontWeight: '600', fontFamily: "'Cal Sans', sans-serif" },
-    actionButton: { padding: '8px 12px', whiteSpace: 'nowrap', backgroundColor: isLight ? '#ffffff' : '#27272a', color: isLight ? '#374151' : '#e4e4e7', border: `1px solid ${isLight ? '#d1d5db' : '#3f3f46'}`, borderRadius: '6px', cursor: 'pointer', fontSize: '13px', fontWeight: '600', transition: 'all 0.2s', fontFamily: "'Cal Sans', sans-serif" },
+    button: { width: '100%', padding: '12px', backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '14px', fontWeight: '600', fontFamily: `'Cal Sans', ${FONT_STACK_SANS}` },
+    actionButton: { padding: '8px 12px', whiteSpace: 'nowrap', backgroundColor: isLight ? '#ffffff' : '#27272a', color: isLight ? '#374151' : '#e4e4e7', border: `1px solid ${isLight ? '#d1d5db' : '#3f3f46'}`, borderRadius: '6px', cursor: 'pointer', fontSize: '13px', fontWeight: '600', transition: 'all 0.2s', fontFamily: `'Cal Sans', ${FONT_STACK_SANS}` },
     builderRow: { display: 'flex', gap: '4px', marginBottom: '8px', flexWrap: 'wrap' },
-    miniBtnActive: { flex: 1, minWidth: '32px', padding: '8px 4px', backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold', fontFamily: "'Cal Sans', sans-serif" },
-    miniBtnInactive: { flex: 1, minWidth: '32px', padding: '8px 4px', backgroundColor: isLight ? '#f9fafb' : '#27272a', color: isLight ? '#4b5563' : '#a1a1aa', border: `1px solid ${isLight ? '#d1d5db' : '#3f3f46'}`, borderRadius: '4px', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold', fontFamily: "'Cal Sans', sans-serif" },
-    addBtn: { padding: '8px 12px', backgroundColor: '#10b981', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '13px', fontWeight: 'bold', width: '100%', fontFamily: "'Cal Sans', sans-serif" },
-    chordToken: { display: 'inline-flex', alignItems: 'center', padding: '6px 10px', margin: '4px', backgroundColor: '#2563eb', color: 'white', borderRadius: '6px', cursor: 'grab', fontWeight: 'bold', fontSize: '14px', userSelect: 'none', gap: '6px', fontFamily: "'Cal Sans', sans-serif" },
+    miniBtnActive: { flex: 1, minWidth: '32px', padding: '8px 4px', backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold', fontFamily: `'Cal Sans', ${FONT_STACK_SANS}` },
+    miniBtnInactive: { flex: 1, minWidth: '32px', padding: '8px 4px', backgroundColor: isLight ? '#f9fafb' : '#27272a', color: isLight ? '#4b5563' : '#a1a1aa', border: `1px solid ${isLight ? '#d1d5db' : '#3f3f46'}`, borderRadius: '4px', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold', fontFamily: `'Cal Sans', ${FONT_STACK_SANS}` },
+    addBtn: { padding: '8px 12px', backgroundColor: '#10b981', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '13px', fontWeight: 'bold', width: '100%', fontFamily: `'Cal Sans', ${FONT_STACK_SANS}` },
+    chordToken: { display: 'inline-flex', alignItems: 'center', padding: '6px 10px', margin: '4px', backgroundColor: '#2563eb', color: 'white', borderRadius: '6px', cursor: 'grab', fontWeight: 'bold', fontSize: '14px', userSelect: 'none', gap: '6px', fontFamily: `'Cal Sans', ${FONT_STACK_SANS}` },
     lyricLine: { display: 'flex', flexWrap: 'wrap', width: '100%', marginBottom: pdfTheme === 'minimalist' ? '4px' : '8px', pageBreakInside: 'avoid', breakInside: 'avoid' },
     canvasWord: { display: 'inline-flex', flexDirection: 'column', margin: pdfTheme === 'minimalist' ? '0 6px 0 0' : '0 10px 0 0', minWidth: '20px', cursor: 'pointer', pageBreakInside: 'avoid', breakInside: 'avoid', ...spacingStyle },
     dropZone: { height: pdfTheme === 'minimalist' ? '22px' : '26px', width: '100%', minWidth: '20px', borderRadius: '4px', display: 'flex', justifyContent: 'flex-start', alignItems: 'center', marginBottom: '2px', transition: 'all 0.1s' },
@@ -662,7 +690,7 @@ function DraggableCanvasChord({ wordId, text, isLight, pdfTheme, onFocus, chordA
   // Free users default to #111827 (Black/Onyx). Pro users use selected chordAccentColor (defaults to #111827).
   let chordColor = isPro ? chordAccentColor : '#111827';
 
-  let fontStyle = "'Cal Sans', sans-serif";
+  let fontStyle = `'Cal Sans', ${FONT_STACK_SANS}`;
   if (pdfTheme === 'classic-studio') fontStyle = "'Roboto Mono', 'Courier New', Courier, monospace";
   if (pdfTheme === 'real-book') fontStyle = "'Architects Daughter', 'Caveat', cursive";
   if (pdfTheme === 'elegance') fontStyle = "'Lora', serif";
@@ -832,6 +860,34 @@ const kbdStyle = (isLight) => ({
   fontFamily: 'monospace',
   fontWeight: 'bold',
 });
+
+// A text input that looks like plain text until the user hovers/focuses it,
+// then reveals normal editable-field chrome (Notion/Google Docs style title
+// editing). Typography (font/size/color/alignment) is passed in via `style`
+// so it matches whatever it's replacing; interactive chrome (background/
+// border on hover/focus) lives in the `.inline-editable-input` CSS class in
+// globalStyles, since inline styles can't express :hover/:focus.
+function InlineEditableField({ value, onChange, placeholder, ariaLabel, style, autoSize }) {
+  // The HTML `size` attribute (not a CSS width) sizes a text input to N
+  // characters intrinsically, identically across Chrome/Safari/Firefox, so
+  // short fields (e.g. "Starship") don't render as a wide guessed box and
+  // long ones (e.g. a full songwriter credit line) don't get clipped.
+  const sizeAttr = autoSize ? Math.max((value || placeholder || '').length, 3) : undefined;
+
+  return (
+    <input
+      type="text"
+      className="inline-editable-input"
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      placeholder={placeholder}
+      aria-label={ariaLabel}
+      autoComplete="off"
+      size={sizeAttr}
+      style={style}
+    />
+  );
+}
 
 export default function App() {
   const { user, isSignedIn } = useUser();
@@ -1564,11 +1620,11 @@ export default function App() {
   const scaleChords = getScaleChords(songKey, preferFlats);
 
   const getThemeFont = (theme) => {
-    if (theme === 'classic-studio') return "'Roboto Mono', 'Courier New', Courier, monospace";
+    if (theme === 'classic-studio') return "'Roboto Mono', 'SFMono-Regular', Consolas, 'Courier New', Courier, monospace";
     if (theme === 'real-book') return "'Architects Daughter', 'Caveat', cursive";
-    if (theme === 'elegance') return "'Lora', serif";
-    if (theme === 'minimalist') return "'Jost', sans-serif";
-    return "'Cal Sans', -apple-system, BlinkMacSystemFont, sans-serif";
+    if (theme === 'elegance') return "'Lora', Georgia, 'Times New Roman', serif";
+    if (theme === 'minimalist') return `'Jost', ${FONT_STACK_SANS}`;
+    return `'Cal Sans', ${FONT_STACK_SANS}`;
   };
 
   return (
@@ -1592,7 +1648,7 @@ export default function App() {
               borderBottom: '1px solid #fde68a',
               padding: '8px 14px',
               fontSize: '12px',
-              fontFamily: "'Cal Sans', sans-serif",
+              fontFamily: `'Cal Sans', ${FONT_STACK_SANS}`,
               flexShrink: 0,
               zIndex: 150,
               width: '100%',
@@ -1652,7 +1708,7 @@ export default function App() {
                 background: 'none',
                 fontSize: '14px',
                 fontWeight: 'bold',
-                fontFamily: "'Cal Sans', sans-serif",
+                fontFamily: `'Cal Sans', ${FONT_STACK_SANS}`,
                 color: activeMobileTab === tab ? '#3b82f6' : (isLightMode ? '#6b7280' : '#a1a1aa'),
                 borderBottom: activeMobileTab === tab ? '3px solid #3b82f6' : 'none',
                 cursor: 'pointer',
@@ -1674,7 +1730,7 @@ export default function App() {
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <SignedOut>
                   <SignUpButton mode="modal">
-                    <button type="button" style={{ padding: '6px 12px', backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold', fontFamily: "'Cal Sans', sans-serif", whiteSpace: 'nowrap' }}>
+                    <button type="button" style={{ padding: '6px 12px', backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold', fontFamily: `'Cal Sans', ${FONT_STACK_SANS}`, whiteSpace: 'nowrap' }}>
                       Sign Up
                     </button>
                   </SignUpButton>
@@ -1684,15 +1740,17 @@ export default function App() {
                   <UserButton afterSignOutUrl="/" />
                 </SignedIn>
               </div>
-            </div>            
-            <label style={styles.label}>Song Title</label>
-            <input type="text" className="styled-input" style={styles.input} value={songTitle} onChange={e => setSongTitle(e.target.value)} placeholder="e.g. Nothing's Gonna Stop Us Now" />
-            
-            <label style={styles.label}>Artist</label>
-            <input type="text" className="styled-input" style={styles.input} value={artist} onChange={e => setArtist(e.target.value)} placeholder="e.g. Starship" />
-            
-            <label style={styles.label}>Songwriter(s)</label>
-            <input type="text" className="styled-input" style={styles.input} value={composer} onChange={e => setComposer(e.target.value)} placeholder="e.g. Albert Hammond, Diane Warren" />
+            </div>
+
+            <label style={styles.label}>Paste your lyrics</label>
+            <div style={{ fontSize: '12px', color: isLightMode ? '#6b7280' : '#a1a1aa', marginBottom: '6px', lineHeight: '1.3' }}>
+              Add section headers (e.g. Verse, Chorus) on separate lines.
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', width: '100%', position: 'relative' }}>
+              <textarea style={styles.textArea} value={inputText} onChange={e => setInputText(e.target.value)} />
+            </div>
+
+            <button type="button" style={{ ...styles.button, marginBottom: '16px' }} onClick={processLyrics}>Map Lyrics to Canvas</button>
 
             <label style={styles.label}>Design Style</label>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginBottom: '16px' }}>
@@ -1842,7 +1900,7 @@ export default function App() {
                 <button 
                   type="button" 
                   onClick={() => setShowUpgradeModal(true)} 
-                  style={{ width: '100%', padding: '8px 12px', backgroundColor: '#10b981', color: 'white', border: 'none', borderRadius: '6px', fontSize: '13px', fontWeight: 'bold', cursor: 'pointer', fontFamily: "'Cal Sans', sans-serif" }}
+                  style={{ width: '100%', padding: '8px 12px', backgroundColor: '#10b981', color: 'white', border: 'none', borderRadius: '6px', fontSize: '13px', fontWeight: 'bold', cursor: 'pointer', fontFamily: `'Cal Sans', ${FONT_STACK_SANS}` }}
                 >
                   Upgrade to Pro
                 </button>
@@ -1852,16 +1910,6 @@ export default function App() {
                 </div>
               )}
             </div>
-
-            <label style={styles.label}>Paste your lyrics</label>
-            <div style={{ fontSize: '12px', color: isLightMode ? '#6b7280' : '#a1a1aa', marginBottom: '6px', lineHeight: '1.3' }}>
-              Add section headers (e.g. Verse, Chorus) on separate lines.
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', width: '100%', position: 'relative' }}>
-              <textarea style={styles.textArea} value={inputText} onChange={e => setInputText(e.target.value)} />
-            </div>
-            
-            <button type="button" style={styles.button} onClick={processLyrics}>Map Lyrics to Canvas</button>
           </div>
 
           {/* LEFT RESIZE HANDLE */}
@@ -1931,14 +1979,36 @@ export default function App() {
 
             <div style={{ paddingBottom: '12px', marginBottom: '20px', borderBottom: `2px solid ${isLightMode ? '#e5e7eb' : '#27272a'}` }}>
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '6px' }}>
-                <h1 style={{ ...styles.songTitleStyle, fontFamily: getThemeFont(pdfTheme) }}>
-                  {songTitle || "Nothing's Gonna Stop Us Now"}
-                </h1>
-                <div style={{ fontStyle: 'italic', fontSize: '13px', color: isLightMode ? '#4b5563' : '#a1a1aa', textAlign: 'center', lineHeight: '1.2', fontFamily: getThemeFont(pdfTheme) }}>
-                  <div>Songwriter(s): {composer || "Albert Hammond, Diane Warren"}</div>
-                  {(artist || "Starship") !== (composer || "Albert Hammond, Diane Warren") && (
-                    <div style={{ marginTop: '1px' }}>Performed by {artist || "Starship"}</div>
-                  )}
+                <InlineEditableField
+                  value={songTitle}
+                  onChange={setSongTitle}
+                  placeholder="Nothing's Gonna Stop Us Now"
+                  ariaLabel="Song title"
+                  style={{ ...styles.songTitleStyle, fontFamily: getThemeFont(pdfTheme), width: '100%', display: 'block' }}
+                />
+                <div style={{ fontStyle: 'italic', fontSize: '13px', color: isLightMode ? '#4b5563' : '#a1a1aa', textAlign: 'center', lineHeight: '1.2', fontFamily: getThemeFont(pdfTheme), width: '100%', maxWidth: '600px' }}>
+                  <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'center', flexWrap: 'wrap' }}>
+                    <span>Songwriter(s):</span>
+                    <InlineEditableField
+                      value={composer}
+                      onChange={setComposer}
+                      placeholder="Albert Hammond, Diane Warren"
+                      ariaLabel="Songwriter(s)"
+                      autoSize
+                      style={{ fontStyle: 'italic', fontSize: '13px', color: 'inherit', fontFamily: 'inherit', textAlign: 'center', maxWidth: '100%' }}
+                    />
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'center', flexWrap: 'wrap', marginTop: '1px' }}>
+                    <span>Performed by</span>
+                    <InlineEditableField
+                      value={artist}
+                      onChange={setArtist}
+                      placeholder="Starship"
+                      ariaLabel="Artist"
+                      autoSize
+                      style={{ fontStyle: 'italic', fontSize: '13px', color: 'inherit', fontFamily: 'inherit', textAlign: 'center', maxWidth: '100%' }}
+                    />
+                  </div>
                 </div>
               </div>
 
@@ -2239,7 +2309,7 @@ export default function App() {
                 ✕
               </button>
 
-              <h2 style={{ fontSize: '20px', fontWeight: 'bold', marginBottom: '20px', fontFamily: "'Cal Sans', sans-serif", display: 'flex', alignItems: 'center', gap: '8px', margin: '0 0 20px 0' }}>
+              <h2 style={{ fontSize: '20px', fontWeight: 'bold', marginBottom: '20px', fontFamily: `'Cal Sans', ${FONT_STACK_SANS}`, display: 'flex', alignItems: 'center', gap: '8px', margin: '0 0 20px 0' }}>
                 <span>❓</span> Quick Start Guide
               </h2>
 
@@ -2247,7 +2317,7 @@ export default function App() {
                 
                 {/* Section 1 */}
                 <div style={{ borderBottom: `1px solid ${isLightMode ? '#f1f5f9' : '#334155'}`, paddingBottom: '16px' }}>
-                  <h3 style={{ fontSize: '14px', fontWeight: 'bold', color: '#2563eb', margin: '0 0 8px 0', fontFamily: "'Cal Sans', sans-serif" }}>
+                  <h3 style={{ fontSize: '14px', fontWeight: 'bold', color: '#2563eb', margin: '0 0 8px 0', fontFamily: `'Cal Sans', ${FONT_STACK_SANS}` }}>
                     1. Lyric Mapping & Section Headers
                   </h3>
                   <ul style={{ margin: 0, paddingLeft: '18px', display: 'flex', flexDirection: 'column', gap: '6px', color: isLightMode ? '#475569' : '#cbd5e1' }}>
@@ -2265,7 +2335,7 @@ export default function App() {
 
                 {/* Section 2 */}
                 <div style={{ borderBottom: `1px solid ${isLightMode ? '#f1f5f9' : '#334155'}`, paddingBottom: '16px' }}>
-                  <h3 style={{ fontSize: '14px', fontWeight: 'bold', color: '#2563eb', margin: '0 0 8px 0', fontFamily: "'Cal Sans', sans-serif" }}>
+                  <h3 style={{ fontSize: '14px', fontWeight: 'bold', color: '#2563eb', margin: '0 0 8px 0', fontFamily: `'Cal Sans', ${FONT_STACK_SANS}` }}>
                     2. Adding & Typing Chords
                   </h3>
                   <ul style={{ margin: 0, paddingLeft: '18px', display: 'flex', flexDirection: 'column', gap: '6px', color: isLightMode ? '#475569' : '#cbd5e1' }}>
@@ -2278,7 +2348,7 @@ export default function App() {
 
                 {/* Section 3 */}
                 <div style={{ borderBottom: `1px solid ${isLightMode ? '#f1f5f9' : '#334155'}`, paddingBottom: '16px' }}>
-                  <h3 style={{ fontSize: '14px', fontWeight: 'bold', color: '#2563eb', margin: '0 0 8px 0', fontFamily: "'Cal Sans', sans-serif" }}>
+                  <h3 style={{ fontSize: '14px', fontWeight: 'bold', color: '#2563eb', margin: '0 0 8px 0', fontFamily: `'Cal Sans', ${FONT_STACK_SANS}` }}>
                     3. Custom Builder
                   </h3>
                   <p style={{ margin: 0, color: isLightMode ? '#475569' : '#cbd5e1' }}>
@@ -2288,7 +2358,7 @@ export default function App() {
 
                 {/* Section 4 */}
                 <div>
-                  <h3 style={{ fontSize: '14px', fontWeight: 'bold', color: '#2563eb', margin: '0 0 10px 0', fontFamily: "'Cal Sans', sans-serif" }}>
+                  <h3 style={{ fontSize: '14px', fontWeight: 'bold', color: '#2563eb', margin: '0 0 10px 0', fontFamily: `'Cal Sans', ${FONT_STACK_SANS}` }}>
                     4. Keyboard Shortcuts
                   </h3>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px 16px', fontSize: '12px', color: isLightMode ? '#475569' : '#cbd5e1' }}>
@@ -2308,7 +2378,7 @@ export default function App() {
               <button
                 type="button"
                 onClick={() => setShowHelpModal(false)}
-                style={{ marginTop: '24px', width: '100%', padding: '10px', backgroundColor: '#2563eb', color: '#ffffff', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', fontSize: '13px', fontFamily: "'Cal Sans', sans-serif" }}
+                style={{ marginTop: '24px', width: '100%', padding: '10px', backgroundColor: '#2563eb', color: '#ffffff', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', fontSize: '13px', fontFamily: `'Cal Sans', ${FONT_STACK_SANS}` }}
               >
                 Got it!
               </button>
@@ -2329,7 +2399,7 @@ export default function App() {
                 ✕
               </button>
               
-              <h2 style={{ fontSize: '22px', fontWeight: 'bold', color: '#0f172a', marginBottom: '6px', fontFamily: "'Cal Sans', sans-serif" }}>
+              <h2 style={{ fontSize: '22px', fontWeight: 'bold', color: '#0f172a', marginBottom: '6px', fontFamily: `'Cal Sans', ${FONT_STACK_SANS}` }}>
                 Upgrade to MySongChart Pro
               </h2>
               <p style={{ fontSize: '13px', color: '#64748b', marginBottom: '20px', lineHeight: '1.4' }}>
@@ -2349,7 +2419,7 @@ export default function App() {
                     fontSize: '12px',
                     fontWeight: '600',
                     cursor: 'pointer',
-                    fontFamily: "'Cal Sans', sans-serif",
+                    fontFamily: `'Cal Sans', ${FONT_STACK_SANS}`,
                     textAlign: 'center',
                   }}
                 >
@@ -2368,7 +2438,7 @@ export default function App() {
                   <button
                     type="button"
                     onClick={handleUpgradeAnnual}
-                    style={{ width: '100%', padding: '10px', backgroundColor: '#2563eb', color: '#ffffff', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', fontSize: '13px', fontFamily: "'Cal Sans', sans-serif" }}
+                    style={{ width: '100%', padding: '10px', backgroundColor: '#2563eb', color: '#ffffff', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', fontSize: '13px', fontFamily: `'Cal Sans', ${FONT_STACK_SANS}` }}
                   >
                     Get Annual Plan (Best Value)
                   </button>
@@ -2383,7 +2453,7 @@ export default function App() {
                   <button
                     type="button"
                     onClick={handleUpgradeMonthly}
-                    style={{ width: '100%', padding: '10px', backgroundColor: '#0f172a', color: '#ffffff', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', fontSize: '13px', fontFamily: "'Cal Sans', sans-serif" }}
+                    style={{ width: '100%', padding: '10px', backgroundColor: '#0f172a', color: '#ffffff', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', fontSize: '13px', fontFamily: `'Cal Sans', ${FONT_STACK_SANS}` }}
                   >
                     Get Monthly Plan
                   </button>
@@ -2455,7 +2525,7 @@ export default function App() {
                           cursor: 'pointer',
                           fontSize: '14px',
                           width: '100%',
-                          fontFamily: "'Cal Sans', sans-serif"
+                          fontFamily: `'Cal Sans', ${FONT_STACK_SANS}`
                         }}>
                         Unlock Full Preview & Clean PDFs
                       </button>
@@ -2536,7 +2606,7 @@ export default function App() {
                         textAlign: 'center',
                         fontSize: '11px',
                         color: '#9CA3AF',
-                        fontFamily: "'Cal Sans', sans-serif"
+                        fontFamily: `'Cal Sans', ${FONT_STACK_SANS}`
                       }}>
                         Created with MySongChart.com (Free Plan) • Upgrade to Pro to remove watermark
                       </div>
