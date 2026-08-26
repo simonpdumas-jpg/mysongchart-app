@@ -230,7 +230,7 @@ const getStyles = (isLight, pdfTheme) => {
   return {
     container: { display: 'flex', height: '100vh', maxHeight: '100vh', fontFamily: `'Cal Sans', ${FONT_STACK_SANS}`, backgroundColor: isLight ? '#f3f4f6' : '#18181b', color: isLight ? '#1f2937' : '#e4e4e7', transition: 'all 0.3s' },
     columnLeft: { padding: '24px', borderRight: `1px solid ${isLight ? '#e5e7eb' : '#27272a'}`, display: 'flex', flexDirection: 'column', height: '100vh', minHeight: 0, boxSizing: 'border-box', backgroundColor: isLight ? '#ffffff' : '#18181b', overflowY: 'auto' },
-    columnCenter: { flex: 1, minWidth: 0, height: '100vh', minHeight: 0, boxSizing: 'border-box', paddingTop: '24px', paddingRight: '40px', paddingBottom: '40px', paddingLeft: '40px', overflowY: 'auto', backgroundColor: isLight ? '#ffffff' : '#09090b', fontFamily: canvasFont, position: 'relative' },
+    columnCenter: { flex: 1, minWidth: 0, height: '100vh', minHeight: 0, boxSizing: 'border-box', paddingTop: '24px', paddingRight: '28px', paddingBottom: '36px', paddingLeft: '28px', overflowY: 'auto', backgroundColor: isLight ? '#ffffff' : '#09090b', fontFamily: canvasFont, position: 'relative' },
     columnRight: { padding: '24px', height: '100vh', minHeight: 0, boxSizing: 'border-box', borderLeft: `1px solid ${isLight ? '#e5e7eb' : '#27272a'}`, backgroundColor: isLight ? '#ffffff' : '#18181b', overflowY: 'auto' },
     header: { marginTop: 0, fontSize: '20px', fontWeight: '600', color: isLight ? '#111827' : '#f4f4f5', letterSpacing: '-0.5px', marginBottom: '16px', fontFamily: `'Cal Sans', ${FONT_STACK_SANS}` },
     subHeader: { fontSize: '14px', fontWeight: '600', color: isLight ? '#6b7280' : '#a1a1aa', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px', marginTop: '16px', fontFamily: `'Cal Sans', ${FONT_STACK_SANS}` },
@@ -244,10 +244,10 @@ const getStyles = (isLight, pdfTheme) => {
     miniBtnInactive: { flex: 1, minWidth: '32px', padding: '8px 4px', backgroundColor: isLight ? '#f9fafb' : '#27272a', color: isLight ? '#4b5563' : '#a1a1aa', border: `1px solid ${isLight ? '#d1d5db' : '#3f3f46'}`, borderRadius: '4px', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold', fontFamily: `'Cal Sans', ${FONT_STACK_SANS}` },
     addBtn: { padding: '8px 12px', backgroundColor: '#10b981', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '13px', fontWeight: 'bold', width: '100%', fontFamily: `'Cal Sans', ${FONT_STACK_SANS}` },
     chordToken: { display: 'inline-flex', alignItems: 'center', padding: '6px 10px', margin: '4px', backgroundColor: '#2563eb', color: 'white', borderRadius: '6px', cursor: 'grab', fontWeight: 'bold', fontSize: '14px', userSelect: 'none', gap: '6px', fontFamily: `'Cal Sans', ${FONT_STACK_SANS}` },
-    lyricLine: { display: 'flex', flexWrap: 'wrap', width: '100%', marginBottom: pdfTheme === 'minimalist' ? '4px' : '8px', pageBreakInside: 'avoid', breakInside: 'avoid' },
-    canvasWord: { display: 'inline-flex', flexDirection: 'column', margin: pdfTheme === 'minimalist' ? '0 6px 0 0' : '0 10px 0 0', minWidth: '20px', cursor: 'pointer', pageBreakInside: 'avoid', breakInside: 'avoid', ...spacingStyle },
-    dropZone: { height: pdfTheme === 'minimalist' ? '22px' : '26px', width: '100%', minWidth: '20px', borderRadius: '4px', display: 'flex', justifyContent: 'flex-start', alignItems: 'center', marginBottom: '2px', transition: 'all 0.1s' },
-    wordText: { fontSize: pdfTheme === 'minimalist' ? '12px' : '14px', color: isLight ? '#111827' : '#e4e4e7', whiteSpace: 'pre', fontFamily: canvasFont, fontWeight: 400 },
+    lyricLine: { display: 'flex', flexWrap: 'wrap', width: '100%', marginBottom: pdfTheme === 'minimalist' ? '6px' : '11px', pageBreakInside: 'avoid', breakInside: 'avoid' },
+    canvasWord: { display: 'inline-flex', flexDirection: 'column', margin: pdfTheme === 'minimalist' ? '0 8px 0 0' : '0 13px 0 0', minWidth: '24px', cursor: 'pointer', pageBreakInside: 'avoid', breakInside: 'avoid', ...spacingStyle },
+    dropZone: { height: pdfTheme === 'minimalist' ? '27px' : '32px', width: '100%', minWidth: '24px', borderRadius: '4px', display: 'flex', justifyContent: 'flex-start', alignItems: 'center', marginBottom: '2px', transition: 'all 0.1s' },
+    wordText: { fontSize: pdfTheme === 'minimalist' ? '15px' : '18px', color: isLight ? '#111827' : '#e4e4e7', whiteSpace: 'pre', fontFamily: canvasFont, fontWeight: 400 },
     songTitleStyle: { margin: '0 auto 4px auto', fontSize: '32px', lineHeight: '1.15', textAlign: 'center', color: isLight ? '#111827' : '#f4f4f5', fontFamily: titleFont, fontWeight: 700, maxWidth: '600px', textWrap: 'balance' },
   };
 };
@@ -691,21 +691,21 @@ function DraggableCanvasChord({ wordId, text, isLight, pdfTheme, onFocus, chordA
   let chordColor = isPro ? chordAccentColor : '#111827';
 
   let fontStyle = `'Cal Sans', ${FONT_STACK_SANS}`;
-  if (pdfTheme === 'classic-studio') fontStyle = "'Roboto Mono', 'Courier New', Courier, monospace";
+  if (pdfTheme === 'classic-studio') fontStyle = "'Roboto Mono', 'SFMono-Regular', Consolas, 'Courier New', Courier, monospace";
   if (pdfTheme === 'real-book') fontStyle = "'Architects Daughter', 'Caveat', cursive";
-  if (pdfTheme === 'elegance') fontStyle = "'Lora', serif";
-  if (pdfTheme === 'minimalist') fontStyle = "'Jost', sans-serif";
+  if (pdfTheme === 'elegance') fontStyle = "'Lora', Georgia, 'Times New Roman', serif";
+  if (pdfTheme === 'minimalist') fontStyle = `'Jost', ${FONT_STACK_SANS}`;
 
   return (
-    <div 
-      ref={setNodeRef} 
-      {...listeners} 
-      {...attributes} 
+    <div
+      ref={setNodeRef}
+      {...listeners}
+      {...attributes}
       onPointerDown={(e) => {
         onFocus(wordId);
         if (listeners?.onPointerDown) listeners.onPointerDown(e);
       }}
-      style={{ ...style, color: chordColor, fontSize: '15px', fontWeight: 700, fontFamily: fontStyle }}
+      style={{ ...style, color: chordColor, fontSize: pdfTheme === 'minimalist' ? '16px' : '20px', fontWeight: 700, fontFamily: fontStyle }}
     >
       {text}
     </div>
@@ -931,8 +931,8 @@ export default function App() {
   const [showHelpModal, setShowHelpModal] = useState(false);
 
   // Column Resizing State (in pixels)
-  const [leftWidth, setLeftWidth] = useState(270);
-  const [rightWidth, setRightWidth] = useState(280);
+  const [leftWidth, setLeftWidth] = useState(320);
+  const [rightWidth, setRightWidth] = useState(340);
 
   const handleMouseDownLeft = (e) => {
     e.preventDefault();
