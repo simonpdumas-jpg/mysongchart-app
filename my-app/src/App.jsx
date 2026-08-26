@@ -228,15 +228,15 @@ const getStyles = (isLight, pdfTheme) => {
   }
 
   return {
-    container: { display: 'flex', height: '100vh', fontFamily: `'Cal Sans', ${FONT_STACK_SANS}`, backgroundColor: isLight ? '#f3f4f6' : '#18181b', color: isLight ? '#1f2937' : '#e4e4e7', transition: 'all 0.3s' },
+    container: { display: 'flex', height: '100vh', maxHeight: '100vh', fontFamily: `'Cal Sans', ${FONT_STACK_SANS}`, backgroundColor: isLight ? '#f3f4f6' : '#18181b', color: isLight ? '#1f2937' : '#e4e4e7', transition: 'all 0.3s' },
     columnLeft: { padding: '24px', borderRight: `1px solid ${isLight ? '#e5e7eb' : '#27272a'}`, display: 'flex', flexDirection: 'column', height: '100vh', minHeight: 0, boxSizing: 'border-box', backgroundColor: isLight ? '#ffffff' : '#18181b', overflowY: 'auto' },
-    columnCenter: { flex: 1, minWidth: 0, minHeight: 0, boxSizing: 'border-box', padding: '40px', overflowY: 'auto', backgroundColor: isLight ? '#ffffff' : '#09090b', fontFamily: canvasFont, position: 'relative' },
-    columnRight: { padding: '24px', minHeight: 0, boxSizing: 'border-box', borderLeft: `1px solid ${isLight ? '#e5e7eb' : '#27272a'}`, backgroundColor: isLight ? '#ffffff' : '#18181b', overflowY: 'auto' },
+    columnCenter: { flex: 1, minWidth: 0, height: '100vh', minHeight: 0, boxSizing: 'border-box', paddingTop: '24px', paddingRight: '40px', paddingBottom: '40px', paddingLeft: '40px', overflowY: 'auto', backgroundColor: isLight ? '#ffffff' : '#09090b', fontFamily: canvasFont, position: 'relative' },
+    columnRight: { padding: '24px', height: '100vh', minHeight: 0, boxSizing: 'border-box', borderLeft: `1px solid ${isLight ? '#e5e7eb' : '#27272a'}`, backgroundColor: isLight ? '#ffffff' : '#18181b', overflowY: 'auto' },
     header: { marginTop: 0, fontSize: '20px', fontWeight: '600', color: isLight ? '#111827' : '#f4f4f5', letterSpacing: '-0.5px', marginBottom: '16px', fontFamily: `'Cal Sans', ${FONT_STACK_SANS}` },
     subHeader: { fontSize: '14px', fontWeight: '600', color: isLight ? '#6b7280' : '#a1a1aa', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px', marginTop: '16px', fontFamily: `'Cal Sans', ${FONT_STACK_SANS}` },
     label: { fontSize: '13px', color: isLight ? '#4b5563' : '#a1a1aa', marginBottom: '4px', display: 'block', fontWeight: '500', fontFamily: `'Cal Sans', ${FONT_STACK_SANS}`, textWrap: 'balance' },
     input: { width: '100%', boxSizing: 'border-box', marginBottom: '10px', padding: '10px', borderRadius: '6px', border: `1px solid ${isLight ? '#d1d5db' : '#3f3f46'}`, backgroundColor: isLight ? '#f9fafb' : '#27272a', color: isLight ? '#111827' : '#f4f4f5', fontSize: '14px', fontFamily: `'Cal Sans', ${FONT_STACK_SANS}` },
-    textArea: { width: '100%', boxSizing: 'border-box', display: 'block', marginTop: '0px', minHeight: '160px', height: '200px', maxHeight: 'none', marginBottom: '16px', padding: '12px', borderRadius: '6px', border: `1px solid ${isLight ? '#d1d5db' : '#3f3f46'}`, backgroundColor: isLight ? '#f9fafb' : '#27272a', color: isLight ? '#111827' : '#f4f4f5', fontSize: '14px', resize: 'vertical', lineHeight: '1.5', fontFamily: "'Courier New', Courier, monospace" },
+    textArea: { width: '100%', boxSizing: 'border-box', display: 'block', flex: '1 1 auto', minHeight: '140px', padding: '12px', borderRadius: '6px', border: `1px solid ${isLight ? '#d1d5db' : '#3f3f46'}`, backgroundColor: isLight ? '#f9fafb' : '#27272a', color: isLight ? '#111827' : '#f4f4f5', fontSize: '14px', resize: 'vertical', lineHeight: '1.5', fontFamily: "'Courier New', Courier, monospace" },
     button: { width: '100%', padding: '12px', backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '14px', fontWeight: '600', fontFamily: `'Cal Sans', ${FONT_STACK_SANS}` },
     actionButton: { padding: '8px 12px', whiteSpace: 'nowrap', backgroundColor: isLight ? '#ffffff' : '#27272a', color: isLight ? '#374151' : '#e4e4e7', border: `1px solid ${isLight ? '#d1d5db' : '#3f3f46'}`, borderRadius: '6px', cursor: 'pointer', fontSize: '13px', fontWeight: '600', transition: 'all 0.2s', fontFamily: `'Cal Sans', ${FONT_STACK_SANS}` },
     builderRow: { display: 'flex', gap: '4px', marginBottom: '8px', flexWrap: 'wrap' },
@@ -1724,9 +1724,9 @@ export default function App() {
           
           {/* LEFT COLUMN */}
           <div className={`column-left ${activeMobileTab === 'lyrics' ? 'mobile-show-active' : 'mobile-hide'}`} style={{ ...styles.columnLeft, width: `${leftWidth}px` }} onClick={() => setFocusedWordId(null)}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexShrink: 0 }}>
               <h2 className="brand-title" style={{...styles.header, margin: 0, lineHeight: '1'}}>MySongChart</h2>
-              
+
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <SignedOut>
                   <SignUpButton mode="modal">
@@ -1742,18 +1742,18 @@ export default function App() {
               </div>
             </div>
 
-            <label style={styles.label}>Paste your lyrics</label>
-            <div style={{ fontSize: '12px', color: isLightMode ? '#6b7280' : '#a1a1aa', marginBottom: '6px', lineHeight: '1.3' }}>
-              Add section headers (e.g. Verse, Chorus) on separate lines.
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', width: '100%', position: 'relative' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', flex: '1 1 auto', marginBottom: '12px' }}>
+              <label style={{ ...styles.label, flexShrink: 0 }}>Paste your lyrics</label>
+              <div style={{ fontSize: '12px', color: isLightMode ? '#6b7280' : '#a1a1aa', marginBottom: '6px', lineHeight: '1.3', flexShrink: 0 }}>
+                Add section headers (e.g. Verse, Chorus) on separate lines.
+              </div>
               <textarea style={styles.textArea} value={inputText} onChange={e => setInputText(e.target.value)} />
             </div>
 
-            <button type="button" style={{ ...styles.button, marginBottom: '16px' }} onClick={processLyrics}>Map Lyrics to Canvas</button>
+            <button type="button" style={{ ...styles.button, marginBottom: '24px', flexShrink: 0 }} onClick={processLyrics}>Map Lyrics to Canvas</button>
 
-            <label style={styles.label}>Design Style</label>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginBottom: '16px' }}>
+            <label style={{ ...styles.label, flexShrink: 0 }}>Design Style</label>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginBottom: '24px', flexShrink: 0 }}>
               <div style={{ display: 'flex', gap: '4px' }}>
                 <button 
                   type="button" 
@@ -1844,7 +1844,7 @@ export default function App() {
             </div>
 
             {/* Pro Chord Accent Color Selector */}
-            <div style={{ marginBottom: '16px' }}>
+            <div style={{ marginBottom: '24px', flexShrink: 0 }}>
               <label style={{ ...styles.label, textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
                 {!isPro && <LockIcon size={11} style={{ opacity: 0.6 }} />} Chord Accent Color
               </label>
@@ -1889,7 +1889,7 @@ export default function App() {
               </div>
             </div>
 
-            <div style={{ padding: '14px', backgroundColor: isLightMode ? '#eff6ff' : '#27272a', borderRadius: '8px', marginBottom: '16px', border: '1px solid #3b82f6', textAlign: 'center' }}>
+            <div style={{ padding: '14px', backgroundColor: isLightMode ? '#eff6ff' : '#27272a', borderRadius: '8px', border: '1px solid #3b82f6', textAlign: 'center', flexShrink: 0 }}>
               <div style={{ fontSize: '14px', fontWeight: 'bold', marginBottom: '6px', color: isLightMode ? '#1e40af' : '#60a5fa', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
                 {isPro ? (<><SparklesIcon size={14} /> Pro Tier Active</>) : 'Free Plan (Watermarked PDFs)'}
               </div>
@@ -1974,10 +1974,9 @@ export default function App() {
               >
                 ↪️
               </button>
-            </div>            
+            </div>
 
-
-            <div style={{ paddingBottom: '12px', marginBottom: '20px', borderBottom: `2px solid ${isLightMode ? '#e5e7eb' : '#27272a'}` }}>
+            <div style={{ paddingBottom: '12px', marginBottom: '24px', borderBottom: `2px solid ${isLightMode ? '#e5e7eb' : '#27272a'}` }}>
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '6px' }}>
                 <InlineEditableField
                   value={songTitle}
@@ -2116,7 +2115,7 @@ export default function App() {
 
           {/* RIGHT PALETTE COLUMN */}
           <div className={`column-right ${activeMobileTab === 'palette' ? 'mobile-show-active' : 'mobile-hide'}`} style={{ ...styles.columnRight, width: `${rightWidth}px` }} onClick={() => setFocusedWordId(null)}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', gap: '8px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', gap: '8px' }}>
               <h2 className="header-title" style={{ ...styles.header, margin: 0, fontSize: '18px', whiteSpace: 'nowrap' }}>
                 Chord Palette
               </h2>
@@ -2151,7 +2150,7 @@ export default function App() {
             </div>
 
             <label style={styles.label}>Display Format</label>
-            <div style={{ display: 'flex', gap: '4px', marginBottom: '16px', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', gap: '4px', marginBottom: '24px', flexWrap: 'wrap' }}>
               <button type="button" onClick={() => setDisplayFormat('letters')} style={displayFormat === 'letters' ? styles.miniBtnActive : styles.miniBtnInactive}>Letters</button>
               <button type="button" onClick={() => setDisplayFormat('numbers')} style={displayFormat === 'numbers' ? styles.miniBtnActive : styles.miniBtnInactive}>Numbers</button>
               <button type="button" onClick={() => setDisplayFormat('roman')} style={displayFormat === 'roman' ? styles.miniBtnActive : styles.miniBtnInactive}>Roman</button>
@@ -2251,7 +2250,7 @@ export default function App() {
               ))}
             </div>
 
-            <div style={{ backgroundColor: isLightMode ? '#f9fafb' : '#27272a', border: `1px solid ${isLightMode ? '#e5e7eb' : 'transparent'}`, padding: '16px', borderRadius: '8px', marginBottom: '20px' }}>
+            <div style={{ backgroundColor: isLightMode ? '#f9fafb' : '#27272a', border: `1px solid ${isLightMode ? '#e5e7eb' : 'transparent'}`, padding: '16px', borderRadius: '8px' }}>
               <h3 style={{...styles.subHeader, marginTop: 0}}>Custom Builder</h3>
               
               <label style={styles.label}>Root Note</label>
