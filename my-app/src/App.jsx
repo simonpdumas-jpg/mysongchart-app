@@ -383,13 +383,27 @@ const parseChordInputString = (inputStr) => {
 // as "57". parseChordInputString already auto-detects root vs suffix across
 // all four display formats (Roman/Solfège/Numbers/Letters), so it doubles as
 // a generic splitter for any already-formatted chord display string.
+//
+// Plain minor ("m" with nothing else) reads as a basic triad quality, same
+// as an unmarked major, so it stays full-size and inline - not superscript.
+// A leading 'm' combined with a real extension (m7, m9, ...) still splits:
+// the 'm' stays inline with the root, only the extension after it is raised
+// (e.g. "Am7" -> "Am" full-size + a small raised "7"). Everything else -
+// 7, maj7, sus2, sus4, dim, aug, 9, 11, etc. - is a genuine quality/extension
+// beyond a basic major/minor triad and is superscripted in full. Same
+// startsWith('m') && !startsWith('maj') test formatChordDisplay already uses
+// to detect a minor suffix, reused here for consistency.
 const ChordLabel = ({ text }) => {
   if (!text) return null;
   const { root, suffix, slash } = parseChordInputString(text);
+  const isMinorPrefixed = suffix.startsWith('m') && !suffix.startsWith('maj');
+  const inlineSuffix = isMinorPrefixed ? 'm' : '';
+  const superSuffix = isMinorPrefixed ? suffix.substring(1) : suffix;
   return (
     <>
       {root}
-      {suffix && <sup style={{ fontSize: '0.65em' }}>{suffix}</sup>}
+      {inlineSuffix}
+      {superSuffix && <sup style={{ fontSize: '0.65em' }}>{superSuffix}</sup>}
       {slash}
     </>
   );
