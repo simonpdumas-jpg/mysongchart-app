@@ -2679,7 +2679,12 @@ export default function App() {
                               const originalChord = chordMap[w.id];
                               const displayChord = formatChordDisplay(originalChord, songKey, transSteps, displayFormat, preferFlats);
                               const isEmptyBeat = w.text === '_';
-                              let chordColor = isPro ? chordAccentColor : '#111827';
+                              // Export always renders on a white page, so the
+                              // dark-mode default (white chords) has to fall
+                              // back to black here regardless of what's
+                              // showing live in the app; a deliberately picked
+                              // custom color still exports as chosen.
+                              let chordColor = isPro ? (chordAccentColor === '#ffffff' ? '#111827' : chordAccentColor) : '#111827';
 
                               return (
                                 <div key={w.id} className="canvas-word" style={{ display: 'inline-flex', flexDirection: 'column', margin: pdfTheme === 'minimalist' ? '0 6px 0 0' : '0 10px 0 0', minWidth: isEmptyBeat ? (pdfTheme === 'minimalist' ? '22px' : '30px') : '18px', pageBreakInside: 'avoid', breakInside: 'avoid' }}>
