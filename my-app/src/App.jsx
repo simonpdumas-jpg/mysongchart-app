@@ -4,6 +4,7 @@ import html2pdf from 'html2pdf.js';
 import { SignedIn, SignedOut, SignUpButton, UserButton, useUser, useClerk } from '@clerk/clerk-react';
 import OnboardingTour, { ONBOARDING_STEPS, hasSeenOnboarding, markOnboardingSeen } from './Onboarding.jsx';
 import { HelpCircle, Compass, Download, Undo2, Redo2 } from 'lucide-react';
+import { useSupabaseClient, listCharts, loadChart, saveChart, deleteChart } from './supabaseClient.js';
 
 const LockIcon = ({ size = 12, style = {}, className = "" }) => (
   <svg 
@@ -1016,6 +1017,15 @@ export default function App() {
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [onboardingStep, setOnboardingStep] = useState(0);
 
+  const supabase = useSupabaseClient();
+  const [showChartsModal, setShowChartsModal] = useState(false);
+  const [currentChartId, setCurrentChartId] = useState(null);
+  const [savedCharts, setSavedCharts] = useState([]);
+  const [chartsLoading, setChartsLoading] = useState(false);
+  const [chartsError, setChartsError] = useState(null);
+  const [isSavingChart, setIsSavingChart] = useState(false);
+  const [chartSavedNotice, setChartSavedNotice] = useState(false);
+
   useEffect(() => {
     if (!hasSeenOnboarding()) {
       setShowOnboarding(true);
@@ -1350,7 +1360,95 @@ export default function App() {
       setLyricLines([]);
       setChordMap({});
       setCustomPalette([]);
+      setCurrentChartId(null);
       localStorage.removeItem('mySongChart_activeSession');
+    }
+  };
+
+  const handleOpenChartsModal = () => {
+    if (!isPro) {
+      setShowUpgradeModal(true);
+      return;
+    }
+    setShowChartsModal(true);
+    if (supabase) refreshChartsList();
+  };
+
+  const refreshChartsList = async () => {
+    if (!supabase) return;
+    setChartsLoading(true);
+    setChartsError(null);
+    try {
+      const rows = await listCharts(supabase, user.id);
+      setSavedCharts(rows);
+    } catch (err) {
+      console.error('Failed to load charts', err);
+      setChartsError("Couldn't load your charts. Please try again.");
+    } finally {
+      setChartsLoading(false);
+    }
+  };
+
+  const handleSaveChart = async () => {
+    setIsSavingChart(true);
+    setChartsError(null);
+    try {
+      const chartData = { songTitle, artist, composer, songKey, capo, transpose, inputText, chordMap, customPalette, pdfTheme, displayFormat, chordAccentColor };
+      const newId = await saveChart(supabase, user.id, {
+        chartId: currentChartId,
+        title: songTitle || 'Untitled Chart',
+        artist: artist || '',
+        chartData,
+      });
+      setCurrentChartId(newId);
+      setChartSavedNotice(true);
+      setTimeout(() => setChartSavedNotice(false), 2000);
+      await refreshChartsList();
+    } catch (err) {
+      console.error('Failed to save chart', err);
+      setChartsError("Couldn't save this chart. Please try again.");
+    } finally {
+      setIsSavingChart(false);
+    }
+  };
+
+  const handleLoadChart = async (chart) => {
+    setChartsError(null);
+    try {
+      const row = await loadChart(supabase, chart.id);
+      const data = row.chart_data;
+      saveSnapshot();
+      setSongTitle(data.songTitle || "");
+      setArtist(data.artist || "");
+      setComposer(data.composer || "");
+      setSongKey(data.songKey || "G");
+      setCapo(data.capo || "0");
+      setTranspose(data.transpose || "0");
+      setInputText(data.inputText || "");
+      setChordMap(data.chordMap || {});
+      setCustomPalette(data.customPalette || []);
+      if (data.pdfTheme) setPdfTheme(data.pdfTheme);
+      if (data.displayFormat) setDisplayFormat(data.displayFormat);
+      if (data.chordAccentColor) setChordAccentColor(data.chordAccentColor);
+      setLyricLines(processLinesLogic(data.inputText || ""));
+      setCurrentChartId(row.id);
+      setShowChartsModal(false);
+    } catch (err) {
+      console.error('Failed to load chart', err);
+      setChartsError("Couldn't load that chart. Please try again.");
+    }
+  };
+
+  const handleDeleteChart = async (chart) => {
+    if (!window.confirm(`Delete "${chart.title || 'Untitled Chart'}"? This can't be undone.`)) return;
+    setChartsError(null);
+    try {
+      await deleteChart(supabase, chart.id);
+      if (currentChartId === chart.id) setCurrentChartId(null);
+      await refreshChartsList();
+    } catch (err) {
+      console.error('Failed to delete chart', err);
+      setChartsError("Couldn't delete that chart. Please try again.");
     }
   };
 
@@ -1386,17 +1484,6 @@ export default function App() {
     window.location.href = `${STRIPE_ANNUAL_URL}${emailParam}`;
   };
 
-  const handleSaveSession = () => {
-    const sessionData = { songTitle, artist, composer, songKey, capo, transpose, inputText, chordMap, customPalette, pdfTheme, displayFormat };
-    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(sessionData));
-    const downloadNode = document.createElement('a');
-    downloadNode.setAttribute("href", dataStr);
-    downloadNode.setAttribute("download", `${songTitle || "Untitled_Chart"}.json`);
-    document.body.appendChild(downloadNode);
-    downloadNode.click();
-    downloadNode.remove();
-  };
-
   useEffect(() => {
     const handleGlobalShortcuts = (e) => {
       // Undo: Cmd+Z / Ctrl+Z
@@ -1417,9 +1504,15 @@ export default function App() {
         }
       }
 
+      // Save to My Charts: Cmd+S / Ctrl+S (Pro only - matches the "My Charts"
+      // toolbar button's gating exactly)
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 's') {
         e.preventDefault();
-        handleSaveSession();
+        if (!isPro) {
+          setShowUpgradeModal(true);
+        } else {
+          handleSaveChart();
+        }
       }
 
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'e') {
@@ -1463,13 +1556,14 @@ export default function App() {
         if (showPreview) setShowPreview(false);
         if (showUpgradeModal) setShowUpgradeModal(false);
         if (showHelpModal) setShowHelpModal(false);
+        if (showChartsModal) setShowChartsModal(false);
         setSelectedWordIds([]);
       }
     };
 
     window.addEventListener('keydown', handleGlobalShortcuts, true);
     return () => window.removeEventListener('keydown', handleGlobalShortcuts, true);
-  }, [showPreview, showUpgradeModal, showHelpModal, songTitle, artist, composer, songKey, capo, transpose, inputText, chordMap, customPalette, pdfTheme, displayFormat, history, redoStack, selectedWordIds]);
+  }, [showPreview, showUpgradeModal, showHelpModal, showChartsModal, songTitle, artist, composer, songKey, capo, transpose, inputText, chordMap, customPalette, pdfTheme, displayFormat, history, redoStack, selectedWordIds, isPro, chordAccentColor, currentChartId, user, supabase]);
 
   useEffect(() => {
     const down = (e) => { if (e.key === 'Alt') setIsAltPressed(true); };
@@ -2129,11 +2223,8 @@ export default function App() {
               <button type="button" className="top-action-btn" style={{ ...styles.actionButton, flex: 1, maxWidth: '140px', textAlign: 'center' }} onClick={handleNewChart}>
                 ➕ New
               </button>
-              <button type="button" className="top-action-btn" style={{ ...styles.actionButton, flex: 1, maxWidth: '140px', textAlign: 'center' }} onClick={() => {
-                // TODO: wire up save/load chart browsing once that feature is built.
-                console.log('My Charts clicked - not implemented yet');
-              }}>
-                📁 My Charts
+              <button type="button" className="top-action-btn" style={{ ...styles.actionButton, flex: 1, maxWidth: '140px', textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }} onClick={handleOpenChartsModal} title="Shortcut: Cmd+S / Ctrl+S">
+                {!isPro && <LockIcon size={11} style={{ opacity: 0.6 }} />} 📁 My Charts
               </button>
               <button data-tour="export-button" type="button" className="top-action-btn" style={{ ...styles.actionButton, flex: 1, maxWidth: '140px', textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }} onClick={() => setShowPreview(true)} title="Shortcut: Cmd+E / Ctrl+E">
                 <Download size={16} strokeWidth={2.25} /> Export
@@ -2493,6 +2584,83 @@ export default function App() {
 
         </div>
         </DndContext>
+
+        {/* --- MY CHARTS MODAL --- */}
+        {showChartsModal && (
+          <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', backgroundColor: 'rgba(0,0,0,0.7)', zIndex: 2000, display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '20px', boxSizing: 'border-box' }}>
+            <div style={{ backgroundColor: isLightMode ? '#ffffff' : '#1e293b', color: isLightMode ? '#0f172a' : '#f8fafc', borderRadius: '16px', padding: '28px', maxWidth: '540px', width: '100%', maxHeight: '85vh', overflowY: 'auto', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)', position: 'relative', textAlign: 'left' }}>
+
+              <button
+                type="button"
+                onClick={() => setShowChartsModal(false)}
+                style={{ position: 'absolute', top: '20px', right: '20px', background: 'none', border: 'none', fontSize: '1.25rem', cursor: 'pointer', color: '#9ca3af' }}
+              >
+                ✕
+              </button>
+
+              <h2 style={{ fontSize: '1.375rem', fontWeight: 'bold', marginBottom: '20px', fontFamily: `'Cal Sans', ${FONT_STACK_SANS}`, display: 'flex', alignItems: 'center', gap: '8px', margin: '0 0 20px 0' }}>
+                <span>📁</span> My Charts
+              </h2>
+
+              {!supabase ? (
+                <div style={{ color: isLightMode ? '#6b7280' : '#a1a1aa', fontSize: '0.9375rem', textAlign: 'center', padding: '20px 0' }}>
+                  Cloud save isn't available right now. Please try again shortly.
+                </div>
+              ) : (
+                <>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px', paddingBottom: '20px', borderBottom: `1px solid ${isLightMode ? '#f1f5f9' : '#334155'}` }}>
+                    <button
+                      type="button"
+                      onClick={handleSaveChart}
+                      disabled={isSavingChart}
+                      style={{ padding: '10px 16px', backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '6px', cursor: isSavingChart ? 'default' : 'pointer', fontWeight: 'bold', opacity: isSavingChart ? 0.7 : 1, fontFamily: `'Cal Sans', ${FONT_STACK_SANS}` }}
+                    >
+                      {isSavingChart ? 'Saving…' : currentChartId ? 'Save Current Chart' : 'Save as New Chart'}
+                    </button>
+                  </div>
+
+                  {chartsError && (
+                    <div style={{ color: '#dc2626', fontSize: '0.875rem', marginBottom: '16px' }}>{chartsError}</div>
+                  )}
+
+              {chartsLoading ? (
+                <div style={{ color: isLightMode ? '#6b7280' : '#a1a1aa', fontSize: '0.9375rem', textAlign: 'center', padding: '20px 0' }}>Loading your charts…</div>
+              ) : savedCharts.length === 0 ? (
+                <div style={{ color: isLightMode ? '#6b7280' : '#a1a1aa', fontSize: '0.9375rem', textAlign: 'center', padding: '20px 0' }}>No saved charts yet. Save your current chart to get started.</div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  {savedCharts.map(chart => (
+                    <div
+                      key={chart.id}
+                      style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', padding: '10px 12px', borderRadius: '8px', border: `1px solid ${chart.id === currentChartId ? '#3b82f6' : (isLightMode ? '#e5e7eb' : '#3f3f46')}`, backgroundColor: isLightMode ? '#f9fafb' : '#27272a' }}
+                    >
+                      <button
+                        type="button"
+                        onClick={() => handleLoadChart(chart)}
+                        style={{ flex: 1, textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer', color: 'inherit', padding: 0 }}
+                      >
+                        <div style={{ fontWeight: 'bold', fontSize: '0.9375rem' }}>{chart.title || 'Untitled Chart'}</div>
+                        <div style={{ fontSize: '0.8125rem', color: isLightMode ? '#6b7280' : '#a1a1aa' }}>
+                          {chart.artist ? `${chart.artist} — ` : ''}Updated {new Date(chart.updated_at).toLocaleString()}
+                        </div>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteChart(chart)}
+                        title="Delete chart"
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#dc2626', fontSize: '1rem', padding: '4px' }}
+                      >
+                        🗑
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+                </>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* --- KEY CHANGE PROMPT (transpose vs. relabel-only) --- */}
         {pendingKeyChange && (
@@ -2877,6 +3045,14 @@ export default function App() {
         onBack={() => setOnboardingStep(Math.max(0, onboardingStep - 1))}
         onSkip={closeOnboarding}
       />
+
+      {/* Global save confirmation - covers Cmd+S saving directly with the
+          My Charts modal closed, not just saving from inside the modal. */}
+      {chartSavedNotice && (
+        <div style={{ position: 'fixed', bottom: '28px', left: '50%', transform: 'translateX(-50%)', backgroundColor: '#16a34a', color: 'white', padding: '10px 20px', borderRadius: '8px', fontWeight: 'bold', fontSize: '0.875rem', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.3)', zIndex: 3000, fontFamily: `'Cal Sans', ${FONT_STACK_SANS}` }}>
+          ✓ Chart saved
+        </div>
+      )}
     </>
   );
 }
