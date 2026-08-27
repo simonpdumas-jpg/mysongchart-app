@@ -2238,7 +2238,7 @@ export default function App() {
             </div>
 
             <div style={{ display: 'flex', gap: '6px', marginBottom: '24px' }}>
-              <div style={{ flex: '0 1 62px' }}>
+              <div style={{ flex: '1 1 78px' }}>
                 <label style={styles.label}>Key</label>
                 <select
                   style={{...styles.input, marginBottom: 0, padding: '9px 4px'}}
@@ -2250,15 +2250,15 @@ export default function App() {
                   ))}
                 </select>
               </div>
-              <div style={{ flex: '1 1 78px' }}>
+              <div style={{ flex: '0 1 68px' }}>
                 <label style={styles.label}>Mode</label>
                 <select
                   style={{...styles.input, marginBottom: 0, padding: '9px 4px'}}
                   value={isMinorKey ? 'minor' : 'major'}
                   onChange={e => handleKeySelect(keyRootLetter + (e.target.value === 'minor' ? 'm' : ''))}
                 >
-                  <option value="major">Major</option>
-                  <option value="minor">Minor</option>
+                  <option value="major">Maj</option>
+                  <option value="minor">Min</option>
                 </select>
               </div>
               <div style={{ flex: '0 1 56px' }}>
