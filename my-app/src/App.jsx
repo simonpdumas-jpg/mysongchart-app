@@ -675,9 +675,14 @@ function DraggableChord({ id, text, baseText, onDelete, isCustom, onChordClick }
         // to hook pointerup instead. `transform` becomes a {x:0,y:0,...}
         // object the instant a drag activates (even before any movement), so
         // a real click is one where it's either unset or reports zero delta.
+        // Deliberately not calling stopPropagation here: dnd-kit's own
+        // PointerSensor listens for pointerup on `document`, and stopping
+        // propagation would keep the native event from ever reaching it,
+        // leaving its internal drag session stuck "active" and silently
+        // swallowing every click elsewhere on the page afterward.
+        if (e.target.closest('.chord-delete-btn')) return;
         const noMovement = !transform || (transform.x === 0 && transform.y === 0);
         if (noMovement) {
-          e.stopPropagation();
           onChordClick?.(id);
         }
       }}
@@ -687,8 +692,13 @@ function DraggableChord({ id, text, baseText, onDelete, isCustom, onChordClick }
         <button
           type="button"
           className="chord-delete-btn"
+          // Native click never fires here for the same reason noted above
+          // (dnd-kit's preventDefault on pointerdown applies to the whole
+          // draggable, including this nested button), so delete happens on
+          // pointerup too. onClick is kept for keyboard activation (Enter/
+          // Space), which doesn't go through a pointerdown at all.
           onClick={(e) => { e.stopPropagation(); onDelete(baseText || text); }}
-          onPointerUp={(e) => e.stopPropagation()}
+          onPointerUp={() => onDelete(baseText || text)}
           style={{ background: 'none', border: 'none', color: '#cbd5e1', cursor: 'pointer', fontSize: '1rem', fontWeight: 'bold', padding: '0 2px' }}
         >
           ×
@@ -1815,8 +1825,8 @@ export default function App() {
 
             <button type="button" style={{ ...styles.button, marginBottom: '24px', flexShrink: 0 }} onClick={processLyrics}>Map Lyrics to Canvas</button>
 
-            <label style={{ ...styles.label, flexShrink: 0 }}>Design Style</label>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginBottom: '24px', flexShrink: 0 }}>
+            <h2 className="header-title" style={{ ...styles.header, margin: '0 0 12px 0', fontSize: '1.25rem', textAlign: 'center', flexShrink: 0 }}>Appearance</h2>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginBottom: '16px', flexShrink: 0 }}>
               <div style={{ display: 'flex', gap: '4px' }}>
                 <button 
                   type="button" 
@@ -1907,7 +1917,7 @@ export default function App() {
             </div>
 
             {/* Pro Chord Accent Color Selector */}
-            <div style={{ marginBottom: '24px', flexShrink: 0 }}>
+            <div style={{ flexShrink: 0 }}>
               <label style={{ ...styles.label, textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
                 {!isPro && <LockIcon size={11} style={{ opacity: 0.6 }} />} Chord Accent Color
               </label>
@@ -2129,6 +2139,8 @@ export default function App() {
                               setSelectedWordIds([]);
                             }}
                             isBold={line.isBold}
+                            chordAccentColor={chordAccentColor}
+                            isPro={isPro}
                           />
                         );
                       })}
@@ -2156,9 +2168,6 @@ export default function App() {
 
           {/* RIGHT PALETTE COLUMN */}
           <div className={`column-right ${activeMobileTab === 'palette' ? 'mobile-show-active' : 'mobile-hide'}`} style={{ ...styles.columnRight, width: `${rightWidth}px` }} onClick={() => setFocusedWordId(null)}>
-
-            {/* Aligns the Free Plan box with the center column's divider line above "Verse 1" */}
-            <div style={{ height: '203px', flexShrink: 0 }} />
 
             <div style={{ padding: '14px', backgroundColor: isLightMode ? '#eff6ff' : '#27272a', borderRadius: '8px', border: '1px solid #3b82f6', textAlign: 'center', flexShrink: 0, marginBottom: '24px' }}>
               <div style={{ fontSize: '1rem', fontWeight: 'bold', marginBottom: '6px', color: isLightMode ? '#1e40af' : '#60a5fa', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
