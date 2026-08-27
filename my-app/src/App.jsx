@@ -2262,7 +2262,15 @@ export default function App() {
               </div>
               <div style={{ flex: '0 1 56px' }}>
                 <label style={styles.label}>Capo</label>
-                <input type="number" style={{...styles.input, marginBottom: 0, padding: '9px 4px'}} value={capo} onChange={e => { saveSnapshot(); setCapo(e.target.value); }} placeholder="0" />
+                <select
+                  style={{...styles.input, marginBottom: 0, padding: '9px 4px'}}
+                  value={capo}
+                  onChange={e => { saveSnapshot(); setCapo(e.target.value); }}
+                >
+                  {Array.from({ length: 12 }, (_, i) => i).map(fret => (
+                    <option key={fret} value={String(fret)}>{fret}</option>
+                  ))}
+                </select>
               </div>
               <div style={{ flex: '1 1 96px' }} onClick={() => { if (!isPro) setShowUpgradeModal(true); }}>
                 <label style={{ ...styles.label, color: !isPro ? '#9ca3af' : (isLightMode ? '#4b5563' : '#a1a1aa'), display: 'flex', alignItems: 'center', gap: '4px' }}>
