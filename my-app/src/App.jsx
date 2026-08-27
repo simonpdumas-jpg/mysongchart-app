@@ -1848,10 +1848,20 @@ export default function App() {
               <div style={{ fontSize: '0.875rem', color: isLightMode ? '#6b7280' : '#a1a1aa', marginBottom: '6px', lineHeight: '1.3', textAlign: 'center', flexShrink: 0 }}>
                 Add section headers (e.g. Verse, Chorus) on separate lines.
               </div>
-              <textarea style={styles.textArea} value={inputText} onChange={e => setInputText(e.target.value)} />
+              <textarea
+                style={styles.textArea}
+                value={inputText}
+                onChange={e => setInputText(e.target.value)}
+                onKeyDown={e => {
+                  if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+                    e.preventDefault();
+                    processLyrics();
+                  }
+                }}
+              />
             </div>
 
-            <button type="button" style={{ ...styles.button, marginBottom: '24px', flexShrink: 0 }} onClick={processLyrics}>Map Lyrics to Canvas</button>
+            <button type="button" style={{ ...styles.button, marginBottom: '24px', flexShrink: 0 }} onClick={processLyrics} title="Shortcut: Cmd+Enter / Ctrl+Enter">Map Lyrics to Canvas</button>
 
             <h2 className="header-title" style={{ ...styles.header, margin: '0 0 12px 0', fontSize: '1.25rem', textAlign: 'center', flexShrink: 0 }}>Appearance</h2>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginBottom: '16px', flexShrink: 0 }}>
