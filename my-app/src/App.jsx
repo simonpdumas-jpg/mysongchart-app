@@ -1366,8 +1366,8 @@ export default function App() {
   };
 
   const handleOpenChartsModal = () => {
-    if (!isSignedIn) {
-      openSignUp();
+    if (!isPro) {
+      setShowUpgradeModal(true);
       return;
     }
     setShowChartsModal(true);
@@ -1484,17 +1484,6 @@ export default function App() {
     window.location.href = `${STRIPE_ANNUAL_URL}${emailParam}`;
   };
 
-  const handleSaveSession = () => {
-    const sessionData = { songTitle, artist, composer, songKey, capo, transpose, inputText, chordMap, customPalette, pdfTheme, displayFormat };
-    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(sessionData));
-    const downloadNode = document.createElement('a');
-    downloadNode.setAttribute("href", dataStr);
-    downloadNode.setAttribute("download", `${songTitle || "Untitled_Chart"}.json`);
-    document.body.appendChild(downloadNode);
-    downloadNode.click();
-    downloadNode.remove();
-  };
-
   useEffect(() => {
     const handleGlobalShortcuts = (e) => {
       // Undo: Cmd+Z / Ctrl+Z
@@ -1515,9 +1504,15 @@ export default function App() {
         }
       }
 
+      // Save to My Charts: Cmd+S / Ctrl+S (Pro only - matches the "My Charts"
+      // toolbar button's gating exactly)
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 's') {
         e.preventDefault();
-        handleSaveSession();
+        if (!isPro) {
+          setShowUpgradeModal(true);
+        } else {
+          handleSaveChart();
+        }
       }
 
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'e') {
@@ -1561,13 +1556,14 @@ export default function App() {
         if (showPreview) setShowPreview(false);
         if (showUpgradeModal) setShowUpgradeModal(false);
         if (showHelpModal) setShowHelpModal(false);
+        if (showChartsModal) setShowChartsModal(false);
         setSelectedWordIds([]);
       }
     };
 
     window.addEventListener('keydown', handleGlobalShortcuts, true);
     return () => window.removeEventListener('keydown', handleGlobalShortcuts, true);
-  }, [showPreview, showUpgradeModal, showHelpModal, songTitle, artist, composer, songKey, capo, transpose, inputText, chordMap, customPalette, pdfTheme, displayFormat, history, redoStack, selectedWordIds]);
+  }, [showPreview, showUpgradeModal, showHelpModal, showChartsModal, songTitle, artist, composer, songKey, capo, transpose, inputText, chordMap, customPalette, pdfTheme, displayFormat, history, redoStack, selectedWordIds, isPro, chordAccentColor, currentChartId, user, supabase]);
 
   useEffect(() => {
     const down = (e) => { if (e.key === 'Alt') setIsAltPressed(true); };
@@ -2227,8 +2223,8 @@ export default function App() {
               <button type="button" className="top-action-btn" style={{ ...styles.actionButton, flex: 1, maxWidth: '140px', textAlign: 'center' }} onClick={handleNewChart}>
                 ➕ New
               </button>
-              <button type="button" className="top-action-btn" style={{ ...styles.actionButton, flex: 1, maxWidth: '140px', textAlign: 'center' }} onClick={handleOpenChartsModal}>
-                📁 My Charts
+              <button type="button" className="top-action-btn" style={{ ...styles.actionButton, flex: 1, maxWidth: '140px', textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }} onClick={handleOpenChartsModal} title="Shortcut: Cmd+S / Ctrl+S">
+                {!isPro && <LockIcon size={11} style={{ opacity: 0.6 }} />} 📁 My Charts
               </button>
               <button data-tour="export-button" type="button" className="top-action-btn" style={{ ...styles.actionButton, flex: 1, maxWidth: '140px', textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }} onClick={() => setShowPreview(true)} title="Shortcut: Cmd+E / Ctrl+E">
                 <Download size={16} strokeWidth={2.25} /> Export
@@ -2621,7 +2617,6 @@ export default function App() {
                     >
                       {isSavingChart ? 'Saving…' : currentChartId ? 'Save Current Chart' : 'Save as New Chart'}
                     </button>
-                    {chartSavedNotice && <span style={{ color: '#16a34a', fontSize: '0.875rem', fontWeight: 'bold' }}>✓ Saved</span>}
                   </div>
 
                   {chartsError && (
@@ -3050,6 +3045,14 @@ export default function App() {
         onBack={() => setOnboardingStep(Math.max(0, onboardingStep - 1))}
         onSkip={closeOnboarding}
       />
+
+      {/* Global save confirmation - covers Cmd+S saving directly with the
+          My Charts modal closed, not just saving from inside the modal. */}
+      {chartSavedNotice && (
+        <div style={{ position: 'fixed', bottom: '28px', left: '50%', transform: 'translateX(-50%)', backgroundColor: '#16a34a', color: 'white', padding: '10px 20px', borderRadius: '8px', fontWeight: 'bold', fontSize: '0.875rem', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.3)', zIndex: 3000, fontFamily: `'Cal Sans', ${FONT_STACK_SANS}` }}>
+          ✓ Chart saved
+        </div>
+      )}
     </>
   );
 }
