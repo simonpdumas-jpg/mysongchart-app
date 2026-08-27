@@ -3,6 +3,7 @@ import { DndContext, useDraggable, useDroppable, useSensor, useSensors, PointerS
 import html2pdf from 'html2pdf.js';
 import { SignedIn, SignedOut, SignUpButton, UserButton, useUser, useClerk } from '@clerk/clerk-react';
 import OnboardingTour, { ONBOARDING_STEPS, hasSeenOnboarding, markOnboardingSeen } from './Onboarding.jsx';
+import { HelpCircle, Compass } from 'lucide-react';
 
 const LockIcon = ({ size = 12, style = {}, className = "" }) => (
   <svg 
@@ -1763,19 +1764,19 @@ export default function App() {
             <button
               type="button"
               onClick={startOnboarding}
-              style={{ background: 'none', border: `1px solid ${isLightMode ? '#d1d5db' : '#3f3f46'}`, color: isLightMode ? '#111827' : '#e4e4e7', padding: '4px 8px', borderRadius: '6px', cursor: 'pointer', fontSize: '0.875rem', fontWeight: 'bold' }}
+              style={{ background: 'none', border: `1px solid ${isLightMode ? '#d1d5db' : '#3f3f46'}`, color: isLightMode ? '#111827' : '#e4e4e7', padding: '4px 8px', borderRadius: '6px', cursor: 'pointer', fontSize: '0.875rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
               title="Show tutorial again"
             >
-              🎓
+              <Compass size={16} strokeWidth={2.25} color="#EAB308" />
             </button>
 
             <button
               type="button"
               onClick={() => setShowHelpModal(true)}
-              style={{ background: 'none', border: `1px solid ${isLightMode ? '#d1d5db' : '#3f3f46'}`, color: isLightMode ? '#111827' : '#e4e4e7', padding: '4px 8px', borderRadius: '6px', cursor: 'pointer', fontSize: '0.875rem', fontWeight: 'bold' }}
+              style={{ background: 'none', border: `1px solid ${isLightMode ? '#d1d5db' : '#3f3f46'}`, color: isLightMode ? '#111827' : '#e4e4e7', padding: '4px 8px', borderRadius: '6px', cursor: 'pointer', fontSize: '0.875rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
               title="Quick Guide & Help"
             >
-              ❓
+              <HelpCircle size={16} strokeWidth={2.25} color="#2563EB" />
             </button>
 
             <button
@@ -1907,7 +1908,10 @@ export default function App() {
               />
             </div>
 
-            <button type="button" style={{ ...styles.button, marginBottom: '24px', flexShrink: 0 }} onClick={processLyrics} title="Shortcut: Cmd+Enter / Ctrl+Enter">Map Lyrics to Canvas</button>
+            <button type="button" style={{ ...styles.button, marginBottom: '24px', flexShrink: 0, display: 'flex', alignItems: 'baseline', justifyContent: 'center', gap: '6px' }} onClick={processLyrics} title="Shortcut: Cmd+Enter / Ctrl+Enter">
+              <span>Map Lyrics to Canvas</span>
+              <span style={{ fontSize: '0.75rem', fontWeight: 'normal', color: 'rgba(255, 255, 255, 0.75)' }}>(⌘ + Enter)</span>
+            </button>
 
             <h2 data-tour="appearance-section" className="header-title" style={{ ...styles.header, margin: '0 0 12px 0', fontSize: '1.25rem', textAlign: 'center', flexShrink: 0 }}>Appearance</h2>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginBottom: '16px', flexShrink: 0 }}>
@@ -2118,7 +2122,7 @@ export default function App() {
               </button>
             </div>
 
-            <div style={{ paddingBottom: '12px', marginBottom: '24px', borderBottom: `2px solid ${isLightMode ? '#e5e7eb' : '#27272a'}` }}>
+            <div data-tour="song-info" style={{ paddingBottom: '12px', marginBottom: '24px', borderBottom: `2px solid ${isLightMode ? '#e5e7eb' : '#27272a'}` }}>
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '6px' }}>
                 <InlineEditableField
                   value={songTitle}
@@ -2495,6 +2499,7 @@ export default function App() {
                     4. Keyboard Shortcuts
                   </h3>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px 16px', fontSize: '0.875rem', color: isLightMode ? '#475569' : '#cbd5e1' }}>
+                    <div><kbd style={kbdStyle(isLightMode)}>⌘ + Enter</kbd> : Map Lyrics to Canvas</div>
                     <div><kbd style={kbdStyle(isLightMode)}>⌘ + Z</kbd> : Undo</div>
                     <div><kbd style={kbdStyle(isLightMode)}>⌘ + Shift + Z</kbd> : Redo</div>
                     <div><kbd style={kbdStyle(isLightMode)}>⌘ + A</kbd> : Select All Chords</div>

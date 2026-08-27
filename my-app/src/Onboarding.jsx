@@ -3,7 +3,7 @@ import React, { useEffect, useLayoutEffect, useState } from 'react';
 // Kept separate from App.jsx so the tour is a self-contained overlay: it only
 // reads target elements via the data-tour attributes placed on existing UI,
 // and never touches the app's own layout, styles, or state beyond the small
-// amount of wiring in App.jsx (open/step state + the five data-tour markers).
+// amount of wiring in App.jsx (open/step state + the six data-tour markers).
 
 const STORAGE_KEY = 'mySongChart_hasSeenOnboarding';
 
@@ -34,6 +34,12 @@ export const ONBOARDING_STEPS = [
     placement: 'right',
   },
   {
+    target: '[data-tour="song-info"]',
+    title: 'Edit your song info',
+    body: "The title, songwriter, and artist are all editable right here — just click and type directly on the chart to change them.",
+    placement: 'bottom',
+  },
+  {
     target: '[data-tour="key-field"]',
     title: 'Set your key',
     body: "Once you set a key, that key's common chords will appear below in “Key Chords” for quick access.",
@@ -42,7 +48,7 @@ export const ONBOARDING_STEPS = [
   {
     target: '[data-tour="chord-boxes"]',
     title: 'Add chords to your lyrics',
-    body: "Drag a chord from the palette onto a box, click a box then click a chord to assign it, or click a box and type a chord directly.",
+    body: "Drag a chord onto a box, or just click and type your own — whatever's fastest for you!",
     placement: 'bottom',
   },
   {
