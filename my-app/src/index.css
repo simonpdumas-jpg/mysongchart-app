@@ -11,6 +11,16 @@
   box-sizing: border-box;
 }
 
+/* Hide scrollbars everywhere while keeping the element scrollable
+   (wheel/trackpad/touch/keyboard scrolling all still work). */
+* {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* legacy Edge */
+}
+*::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Chromium-based Edge */
+}
+
 html {
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;

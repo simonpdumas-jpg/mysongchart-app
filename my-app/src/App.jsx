@@ -1742,6 +1742,9 @@ export default function App() {
               </div>
             </div>
 
+            {/* Aligns "Paste your lyrics" with the center column's divider line above "Verse 1" */}
+            <div style={{ height: '140px', flexShrink: 0 }} />
+
             <div style={{ display: 'flex', flexDirection: 'column', flex: '1 1 auto', marginBottom: '12px' }}>
               <label style={{ ...styles.label, flexShrink: 0 }}>Paste your lyrics</label>
               <div style={{ fontSize: '12px', color: isLightMode ? '#6b7280' : '#a1a1aa', marginBottom: '6px', lineHeight: '1.3', flexShrink: 0 }}>
@@ -1887,28 +1890,6 @@ export default function App() {
                   );
                 })}
               </div>
-            </div>
-
-            <div style={{ padding: '14px', backgroundColor: isLightMode ? '#eff6ff' : '#27272a', borderRadius: '8px', border: '1px solid #3b82f6', textAlign: 'center', flexShrink: 0 }}>
-              <div style={{ fontSize: '14px', fontWeight: 'bold', marginBottom: '6px', color: isLightMode ? '#1e40af' : '#60a5fa', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
-                {isPro ? (<><SparklesIcon size={14} /> Pro Tier Active</>) : 'Free Plan (Watermarked PDFs)'}
-              </div>
-              <div style={{ fontSize: '12px', color: isLightMode ? '#4b5563' : '#a1a1aa', marginBottom: '12px', textWrap: 'balance', lineHeight: '1.3' }}>
-                {isPro ? 'Unlimited charts, transposing, ChordPro exports & clean PDFs active.' : 'Upgrade to Pro for ChordPro exports, transposing & clean PDFs.'}
-              </div>
-              {!isPro ? (
-                <button 
-                  type="button" 
-                  onClick={() => setShowUpgradeModal(true)} 
-                  style={{ width: '100%', padding: '8px 12px', backgroundColor: '#10b981', color: 'white', border: 'none', borderRadius: '6px', fontSize: '13px', fontWeight: 'bold', cursor: 'pointer', fontFamily: `'Cal Sans', ${FONT_STACK_SANS}` }}
-                >
-                  Upgrade to Pro
-                </button>
-              ) : (
-                <div style={{ fontSize: '11px', color: '#10b981', fontWeight: 'bold' }}>
-                  ✓ Subscription Active
-                </div>
-              )}
             </div>
           </div>
 
@@ -2115,38 +2096,62 @@ export default function App() {
 
           {/* RIGHT PALETTE COLUMN */}
           <div className={`column-right ${activeMobileTab === 'palette' ? 'mobile-show-active' : 'mobile-hide'}`} style={{ ...styles.columnRight, width: `${rightWidth}px` }} onClick={() => setFocusedWordId(null)}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', gap: '8px' }}>
-              <h2 className="header-title" style={{ ...styles.header, margin: 0, fontSize: '18px', whiteSpace: 'nowrap' }}>
-                Chord Palette
-              </h2>
 
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
-                <button 
-                  type="button" 
-                  onClick={() => setShowHelpModal(true)} 
-                  style={{ background: 'none', border: `1px solid ${isLightMode ? '#d1d5db' : '#3f3f46'}`, color: isLightMode ? '#111827' : '#e4e4e7', padding: '4px 8px', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold' }}
-                  title="Quick Guide & Help"
-                >
-                  ❓
-                </button>
+            {/* Aligns the Free Plan box with the center column's divider line above "Verse 1" */}
+            <div style={{ height: '202px', flexShrink: 0 }} />
 
-                <button 
-                  type="button" 
-                  onClick={() => {
-                    if (!isPro) {
-                      setShowUpgradeModal(true);
-                      setIsLightMode(true);
-                    } else {
-                      setIsLightMode(!isLightMode);
-                    }
-                  }} 
-                  style={{ background: 'none', border: `1px solid ${isLightMode ? '#d1d5db' : '#3f3f46'}`, color: isLightMode ? '#111827' : '#e4e4e7', padding: '4px 8px', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '4px' }}
-                  title="Toggle Dark/Light Mode"
-                >
-                  {!isPro && <LockIcon size={11} style={{ opacity: 0.6 }} />}
-                  {isLightMode ? '🌙' : '☀️'}
-                </button>
+            <div style={{ padding: '14px', backgroundColor: isLightMode ? '#eff6ff' : '#27272a', borderRadius: '8px', border: '1px solid #3b82f6', textAlign: 'center', flexShrink: 0, marginBottom: '24px' }}>
+              <div style={{ fontSize: '14px', fontWeight: 'bold', marginBottom: '6px', color: isLightMode ? '#1e40af' : '#60a5fa', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+                {isPro ? (<><SparklesIcon size={14} /> Pro Tier Active</>) : 'Free Plan (Watermarked PDFs)'}
               </div>
+              <div style={{ fontSize: '12px', color: isLightMode ? '#4b5563' : '#a1a1aa', marginBottom: '12px', textWrap: 'balance', lineHeight: '1.3' }}>
+                {isPro ? 'Unlimited charts, transposing, ChordPro exports & clean PDFs active.' : 'Upgrade to Pro for ChordPro exports, transposing & clean PDFs.'}
+              </div>
+              {!isPro ? (
+                <button
+                  type="button"
+                  onClick={() => setShowUpgradeModal(true)}
+                  style={{ width: '100%', padding: '8px 12px', backgroundColor: '#10b981', color: 'white', border: 'none', borderRadius: '6px', fontSize: '13px', fontWeight: 'bold', cursor: 'pointer', fontFamily: `'Cal Sans', ${FONT_STACK_SANS}` }}
+                >
+                  Upgrade to Pro
+                </button>
+              ) : (
+                <div style={{ fontSize: '11px', color: '#10b981', fontWeight: 'bold' }}>
+                  ✓ Subscription Active
+                </div>
+              )}
+            </div>
+
+            <h2 className="header-title" style={{ ...styles.header, margin: '0 0 12px 0', fontSize: '18px', textAlign: 'center' }}>
+              Chord Palette
+            </h2>
+
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', flexShrink: 0, marginBottom: '24px' }}>
+              <button
+                type="button"
+                onClick={() => setShowHelpModal(true)}
+                style={{ background: 'none', border: `1px solid ${isLightMode ? '#d1d5db' : '#3f3f46'}`, color: isLightMode ? '#111827' : '#e4e4e7', padding: '4px 8px', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold' }}
+                title="Quick Guide & Help"
+              >
+                ❓
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  if (!isPro) {
+                    setShowUpgradeModal(true);
+                    setIsLightMode(true);
+                  } else {
+                    setIsLightMode(!isLightMode);
+                  }
+                }}
+                style={{ background: 'none', border: `1px solid ${isLightMode ? '#d1d5db' : '#3f3f46'}`, color: isLightMode ? '#111827' : '#e4e4e7', padding: '4px 8px', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '4px' }}
+                title="Toggle Dark/Light Mode"
+              >
+                {!isPro && <LockIcon size={11} style={{ opacity: 0.6 }} />}
+                {isLightMode ? '🌙' : '☀️'}
+              </button>
             </div>
 
             <label style={styles.label}>Display Format</label>
