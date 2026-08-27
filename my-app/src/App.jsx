@@ -1844,8 +1844,8 @@ export default function App() {
           {/* LEFT COLUMN */}
           <div className={`column-left ${activeMobileTab === 'lyrics' ? 'mobile-show-active' : 'mobile-hide'}`} style={{ ...styles.columnLeft, width: `${leftWidth}px` }} onClick={() => setFocusedWordId(null)}>
             <div style={{ display: 'flex', flexDirection: 'column', flex: '1 1 auto', marginBottom: '12px' }}>
-              <h2 className="header-title" style={{ ...styles.header, margin: '0 0 12px 0', fontSize: '1.25rem', flexShrink: 0 }}>Paste your lyrics</h2>
-              <div style={{ fontSize: '0.875rem', color: isLightMode ? '#6b7280' : '#a1a1aa', marginBottom: '6px', lineHeight: '1.3', flexShrink: 0 }}>
+              <h2 className="header-title" style={{ ...styles.header, margin: '0 0 12px 0', fontSize: '1.25rem', textAlign: 'center', flexShrink: 0 }}>Paste your lyrics</h2>
+              <div style={{ fontSize: '0.875rem', color: isLightMode ? '#6b7280' : '#a1a1aa', marginBottom: '6px', lineHeight: '1.3', textAlign: 'center', flexShrink: 0 }}>
                 Add section headers (e.g. Verse, Chorus) on separate lines.
               </div>
               <textarea style={styles.textArea} value={inputText} onChange={e => setInputText(e.target.value)} />
@@ -2225,7 +2225,7 @@ export default function App() {
               )}
             </div>
 
-            <h2 className="header-title" style={{ ...styles.header, margin: '0 0 24px 0', fontSize: '1.25rem' }}>
+            <h2 className="header-title" style={{ ...styles.header, margin: '0 0 24px 0', fontSize: '1.25rem', textAlign: 'center' }}>
               Chord Palette
             </h2>
 
