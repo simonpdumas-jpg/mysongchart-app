@@ -3,7 +3,7 @@ import { DndContext, useDraggable, useDroppable, useSensor, useSensors, PointerS
 import html2pdf from 'html2pdf.js';
 import { SignedIn, SignedOut, SignUpButton, UserButton, useUser, useClerk } from '@clerk/clerk-react';
 import OnboardingTour, { ONBOARDING_STEPS, hasSeenOnboarding, markOnboardingSeen } from './Onboarding.jsx';
-import { HelpCircle, Compass } from 'lucide-react';
+import { HelpCircle, Compass, Download, Undo2, Redo2 } from 'lucide-react';
 
 const LockIcon = ({ size = 12, style = {}, className = "" }) => (
   <svg 
@@ -377,6 +377,38 @@ const parseChordInputString = (inputStr) => {
   return { root, suffix: normalizedSuffix, slash };
 };
 
+// Renders a chord/scale-degree string (e.g. "G7", "5m7", "vi7", "Sol7") with
+// its quality/extension suffix set smaller and raised, standard chord-chart
+// notation - and disambiguates e.g. Numbers-mode "5" + "7" from misreading
+// as "57". parseChordInputString already auto-detects root vs suffix across
+// all four display formats (Roman/Solfège/Numbers/Letters), so it doubles as
+// a generic splitter for any already-formatted chord display string.
+//
+// Plain minor ("m" with nothing else) reads as a basic triad quality, same
+// as an unmarked major, so it stays full-size and inline - not superscript.
+// A leading 'm' combined with a real extension (m7, m9, ...) still splits:
+// the 'm' stays inline with the root, only the extension after it is raised
+// (e.g. "Am7" -> "Am" full-size + a small raised "7"). Everything else -
+// 7, maj7, sus2, sus4, dim, aug, 9, 11, etc. - is a genuine quality/extension
+// beyond a basic major/minor triad and is superscripted in full. Same
+// startsWith('m') && !startsWith('maj') test formatChordDisplay already uses
+// to detect a minor suffix, reused here for consistency.
+const ChordLabel = ({ text }) => {
+  if (!text) return null;
+  const { root, suffix, slash } = parseChordInputString(text);
+  const isMinorPrefixed = suffix.startsWith('m') && !suffix.startsWith('maj');
+  const inlineSuffix = isMinorPrefixed ? 'm' : '';
+  const superSuffix = isMinorPrefixed ? suffix.substring(1) : suffix;
+  return (
+    <>
+      {root}
+      {inlineSuffix}
+      {superSuffix && <sup style={{ fontSize: '0.65em' }}>{superSuffix}</sup>}
+      {slash}
+    </>
+  );
+};
+
 const parseSlashRoot = (slashStr) => {
   if (!slashStr || slashStr === '/') return '';
   return slashStr.startsWith('/') ? slashStr.substring(1) : slashStr;
@@ -689,7 +721,7 @@ function DraggableChord({ id, text, baseText, onDelete, isCustom, onChordClick }
         }
       }}
     >
-      <span>{text}</span>
+      <span><ChordLabel text={text} /></span>
       {isCustom && (
         <button
           type="button"
@@ -739,7 +771,7 @@ function DraggableCanvasChord({ wordId, text, isLight, pdfTheme, onFocus, chordA
       }}
       style={{ ...style, color: chordColor, fontSize: pdfTheme === 'minimalist' ? '1.125rem' : '1.375rem', fontWeight: 700, fontFamily: fontStyle }}
     >
-      {text}
+      <ChordLabel text={text} />
     </div>
   );
 }
@@ -979,6 +1011,7 @@ export default function App() {
   const [isPro, setIsPro] = useState(false);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [showHelpModal, setShowHelpModal] = useState(false);
+  const [pendingKeyChange, setPendingKeyChange] = useState(null);
 
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [onboardingStep, setOnboardingStep] = useState(0);
@@ -1586,24 +1619,49 @@ export default function App() {
 
   // Selecting a key from the dropdown behaves exactly like typing it into
   // the old text field did: re-derive placed chords by the semitone diff.
+  // Changing the Key field is ambiguous whenever chords are already placed:
+  // it could mean "transpose what I've charted" or "I mistyped the key label
+  // and the chords I already typed are correct as-is." With no chords on the
+  // canvas there's nothing that transposing could disturb, so that case still
+  // applies instantly - only the ambiguous case is deferred to a prompt.
   const handleKeySelect = (newKey) => {
-    saveSnapshot();
-    const diff = getSemitoneDifference(songKey, newKey);
     if (Object.keys(chordMap).length > 0) {
-      const targetPrefersFlats = getKeyDefaultPrefersFlats(newKey);
-      setChordMap(prev => {
-        const newMap = {};
-        Object.keys(prev).forEach(id => {
-          const originalChord = prev[id];
-          if (originalChord) {
-            newMap[id] = transposeStoredChord(originalChord, diff, targetPrefersFlats);
-          }
-        });
-        return newMap;
-      });
+      setPendingKeyChange(newKey);
+      return;
     }
+    saveSnapshot();
     setSongKey(newKey);
     setTranspose("0");
+  };
+
+  const confirmTransposeToNewKey = () => {
+    const newKey = pendingKeyChange;
+    if (!newKey) return;
+    saveSnapshot();
+    const diff = getSemitoneDifference(songKey, newKey);
+    const targetPrefersFlats = getKeyDefaultPrefersFlats(newKey);
+    setChordMap(prev => {
+      const newMap = {};
+      Object.keys(prev).forEach(id => {
+        const originalChord = prev[id];
+        if (originalChord) {
+          newMap[id] = transposeStoredChord(originalChord, diff, targetPrefersFlats);
+        }
+      });
+      return newMap;
+    });
+    setSongKey(newKey);
+    setTranspose("0");
+    setPendingKeyChange(null);
+  };
+
+  const confirmRelabelKeyOnly = () => {
+    const newKey = pendingKeyChange;
+    if (!newKey) return;
+    saveSnapshot();
+    setSongKey(newKey);
+    setTranspose("0");
+    setPendingKeyChange(null);
   };
 
   const handleDragEnd = (event) => {
@@ -1767,7 +1825,7 @@ export default function App() {
               style={{ background: 'none', border: `1px solid ${isLightMode ? '#d1d5db' : '#3f3f46'}`, color: isLightMode ? '#111827' : '#e4e4e7', padding: '4px 8px', borderRadius: '6px', cursor: 'pointer', fontSize: '0.875rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
               title="Show tutorial again"
             >
-              <Compass size={16} strokeWidth={2.25} color="#EAB308" />
+              <Compass size={16} strokeWidth={2.25} color="#0D9488" />
             </button>
 
             <button
@@ -1776,7 +1834,7 @@ export default function App() {
               style={{ background: 'none', border: `1px solid ${isLightMode ? '#d1d5db' : '#3f3f46'}`, color: isLightMode ? '#111827' : '#e4e4e7', padding: '4px 8px', borderRadius: '6px', cursor: 'pointer', fontSize: '0.875rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
               title="Quick Guide & Help"
             >
-              <HelpCircle size={16} strokeWidth={2.25} color="#2563EB" />
+              <HelpCircle size={16} strokeWidth={2.25} color="#DC2626" />
             </button>
 
             <button
@@ -1949,7 +2007,6 @@ export default function App() {
                     justifyContent: 'center',
                     gap: '2px',
                     opacity: !isPro ? 0.8 : 1,
-                    border: !isPro ? `1px dashed ${isLightMode ? '#cbd5e1' : '#4b5563'}` : undefined
                   }}
                 >
                   {!isPro && <LockIcon size={10} style={{ opacity: 0.6 }} />}
@@ -1972,7 +2029,6 @@ export default function App() {
                     justifyContent: 'center',
                     gap: '2px',
                     opacity: !isPro ? 0.8 : 1,
-                    border: !isPro ? `1px dashed ${isLightMode ? '#cbd5e1' : '#4b5563'}` : undefined
                   }}
                 >
                   {!isPro && <LockIcon size={10} style={{ opacity: 0.6 }} />}
@@ -1995,7 +2051,6 @@ export default function App() {
                     justifyContent: 'center',
                     gap: '2px',
                     opacity: !isPro ? 0.8 : 1,
-                    border: !isPro ? `1px dashed ${isLightMode ? '#cbd5e1' : '#4b5563'}` : undefined
                   }}
                 >
                   {!isPro && <LockIcon size={10} style={{ opacity: 0.6 }} />}
@@ -2080,45 +2135,51 @@ export default function App() {
               }}>
                 📁 My Charts
               </button>
-              <button data-tour="export-button" type="button" className="top-action-btn" style={{ ...styles.actionButton, flex: 1, maxWidth: '140px', textAlign: 'center' }} onClick={() => setShowPreview(true)} title="Shortcut: Cmd+E / Ctrl+E">
-                📤 Export
+              <button data-tour="export-button" type="button" className="top-action-btn" style={{ ...styles.actionButton, flex: 1, maxWidth: '140px', textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }} onClick={() => setShowPreview(true)} title="Shortcut: Cmd+E / Ctrl+E">
+                <Download size={16} strokeWidth={2.25} /> Export
               </button>
               <div style={{ width: '1px', height: '20px', backgroundColor: isLightMode ? '#d1d5db' : '#3f3f46', margin: '0 4px' }} />
-              <button 
-                type="button" 
-                className="top-action-btn" 
-                style={{ 
+              <button
+                type="button"
+                className="top-action-btn"
+                style={{
                   ...styles.actionButton,
                   flex: 1,
                   maxWidth: '140px',
                   padding: '8px 12px',
                   textAlign: 'center',
-                  opacity: history.length === 0 ? 0.5 : 1, 
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  opacity: history.length === 0 ? 0.5 : 1,
                   cursor: history.length === 0 ? 'not-allowed' : 'pointer',
-                }} 
+                }}
                 onClick={handleUndo}
                 disabled={history.length === 0}
                 title="Undo (⌘Z)"
               >
-                ↩️
+                <Undo2 size={16} strokeWidth={2.25} />
               </button>
-              <button 
-                type="button" 
-                className="top-action-btn" 
-                style={{ 
+              <button
+                type="button"
+                className="top-action-btn"
+                style={{
                   ...styles.actionButton,
                   flex: 1,
                   maxWidth: '140px',
                   padding: '8px 12px',
                   textAlign: 'center',
-                  opacity: redoStack.length === 0 ? 0.5 : 1, 
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  opacity: redoStack.length === 0 ? 0.5 : 1,
                   cursor: redoStack.length === 0 ? 'not-allowed' : 'pointer',
-                }} 
+                }}
                 onClick={handleRedo}
                 disabled={redoStack.length === 0}
                 title="Redo (⌘Shift+Z)"
               >
-                ↪️
+                <Redo2 size={16} strokeWidth={2.25} />
               </button>
             </div>
 
@@ -2420,7 +2481,7 @@ export default function App() {
 
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '16px' }}>
                 <div style={{ flex: 1, textAlign: 'center', fontSize: '1.25rem', fontWeight: 'bold', color: isLightMode ? '#111827' : 'white', backgroundColor: isLightMode ? '#ffffff' : '#18181b', padding: '8px', borderRadius: '4px', border: `1px solid ${isLightMode ? '#d1d5db' : '#3f3f46'}` }}>
-                  {formatChordDisplay(builtChordAbsolute, songKey, transSteps, displayFormat, preferFlats)}
+                  <ChordLabel text={formatChordDisplay(builtChordAbsolute, songKey, transSteps, displayFormat, preferFlats)} />
                 </div>
                 <div style={{ flex: 1 }}>
                   <button type="button" onClick={addCustomChord} style={styles.addBtn}>+ Add</button>
@@ -2432,6 +2493,43 @@ export default function App() {
 
         </div>
         </DndContext>
+
+        {/* --- KEY CHANGE PROMPT (transpose vs. relabel-only) --- */}
+        {pendingKeyChange && (
+          <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', backgroundColor: 'rgba(0,0,0,0.7)', zIndex: 2000, display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '20px', boxSizing: 'border-box' }}>
+            <div style={{ backgroundColor: isLightMode ? '#ffffff' : '#1e293b', color: isLightMode ? '#0f172a' : '#f8fafc', borderRadius: '16px', padding: '28px', maxWidth: '440px', width: '100%', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)', textAlign: 'left' }}>
+              <h2 style={{ fontSize: '1.25rem', fontWeight: 'bold', margin: '0 0 12px 0', fontFamily: `'Cal Sans', ${FONT_STACK_SANS}` }}>
+                Update Key
+              </h2>
+              <p style={{ fontSize: '0.9375rem', lineHeight: '1.5', color: isLightMode ? '#475569' : '#cbd5e1', margin: '0 0 20px 0' }}>
+                You're changing the key from <strong>{songKey}</strong> to <strong>{pendingKeyChange}</strong>, and this chart already has chords placed. What would you like to do?
+              </p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                <button
+                  type="button"
+                  onClick={confirmTransposeToNewKey}
+                  style={{ padding: '12px', backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontFamily: `'Cal Sans', ${FONT_STACK_SANS}` }}
+                >
+                  Transpose existing chords to {pendingKeyChange}
+                </button>
+                <button
+                  type="button"
+                  onClick={confirmRelabelKeyOnly}
+                  style={{ padding: '12px', backgroundColor: isLightMode ? '#f9fafb' : '#27272a', color: isLightMode ? '#111827' : '#e4e4e7', border: `1px solid ${isLightMode ? '#d1d5db' : '#3f3f46'}`, borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontFamily: `'Cal Sans', ${FONT_STACK_SANS}` }}
+                >
+                  Just update the key label (don't change chords)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPendingKeyChange(null)}
+                  style={{ padding: '8px', background: 'none', border: 'none', color: isLightMode ? '#6b7280' : '#a1a1aa', cursor: 'pointer', fontSize: '0.875rem' }}
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* --- HELP CENTER MODAL --- */}
         {showHelpModal && (
