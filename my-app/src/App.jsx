@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { DndContext, useDraggable, useDroppable, useSensor, useSensors, PointerSensor, TouchSensor } from '@dnd-kit/core';
 import html2pdf from 'html2pdf.js';
 import { SignedIn, SignedOut, SignUpButton, UserButton, useUser, useClerk } from '@clerk/clerk-react';
+import OnboardingTour, { ONBOARDING_STEPS, hasSeenOnboarding, markOnboardingSeen } from './Onboarding.jsx';
 
 const LockIcon = ({ size = 12, style = {}, className = "" }) => (
   <svg 
@@ -978,6 +979,25 @@ export default function App() {
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [showHelpModal, setShowHelpModal] = useState(false);
 
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  const [onboardingStep, setOnboardingStep] = useState(0);
+
+  useEffect(() => {
+    if (!hasSeenOnboarding()) {
+      setShowOnboarding(true);
+    }
+  }, []);
+
+  const startOnboarding = () => {
+    setOnboardingStep(0);
+    setShowOnboarding(true);
+  };
+
+  const closeOnboarding = () => {
+    setShowOnboarding(false);
+    markOnboardingSeen();
+  };
+
   // Column Resizing State (in pixels)
   const [leftWidth, setLeftWidth] = useState(380);
   const [rightWidth, setRightWidth] = useState(400);
@@ -1742,6 +1762,15 @@ export default function App() {
 
             <button
               type="button"
+              onClick={startOnboarding}
+              style={{ background: 'none', border: `1px solid ${isLightMode ? '#d1d5db' : '#3f3f46'}`, color: isLightMode ? '#111827' : '#e4e4e7', padding: '4px 8px', borderRadius: '6px', cursor: 'pointer', fontSize: '0.875rem', fontWeight: 'bold' }}
+              title="Show tutorial again"
+            >
+              🎓
+            </button>
+
+            <button
+              type="button"
               onClick={() => setShowHelpModal(true)}
               style={{ background: 'none', border: `1px solid ${isLightMode ? '#d1d5db' : '#3f3f46'}`, color: isLightMode ? '#111827' : '#e4e4e7', padding: '4px 8px', borderRadius: '6px', cursor: 'pointer', fontSize: '0.875rem', fontWeight: 'bold' }}
               title="Quick Guide & Help"
@@ -1865,6 +1894,7 @@ export default function App() {
                 Add section headers (e.g. Verse, Chorus) on separate lines.
               </div>
               <textarea
+                data-tour="lyrics-textarea"
                 style={styles.textArea}
                 value={inputText}
                 onChange={e => setInputText(e.target.value)}
@@ -1879,7 +1909,7 @@ export default function App() {
 
             <button type="button" style={{ ...styles.button, marginBottom: '24px', flexShrink: 0 }} onClick={processLyrics} title="Shortcut: Cmd+Enter / Ctrl+Enter">Map Lyrics to Canvas</button>
 
-            <h2 className="header-title" style={{ ...styles.header, margin: '0 0 12px 0', fontSize: '1.25rem', textAlign: 'center', flexShrink: 0 }}>Appearance</h2>
+            <h2 data-tour="appearance-section" className="header-title" style={{ ...styles.header, margin: '0 0 12px 0', fontSize: '1.25rem', textAlign: 'center', flexShrink: 0 }}>Appearance</h2>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginBottom: '16px', flexShrink: 0 }}>
               <div style={{ display: 'flex', gap: '4px' }}>
                 <button 
@@ -2046,7 +2076,7 @@ export default function App() {
               }}>
                 📁 My Charts
               </button>
-              <button type="button" className="top-action-btn" style={{ ...styles.actionButton, flex: 1, maxWidth: '140px', textAlign: 'center' }} onClick={() => setShowPreview(true)} title="Shortcut: Cmd+E / Ctrl+E">
+              <button data-tour="export-button" type="button" className="top-action-btn" style={{ ...styles.actionButton, flex: 1, maxWidth: '140px', textAlign: 'center' }} onClick={() => setShowPreview(true)} title="Shortcut: Cmd+E / Ctrl+E">
                 📤 Export
               </button>
               <div style={{ width: '1px', height: '20px', backgroundColor: isLightMode ? '#d1d5db' : '#3f3f46', margin: '0 4px' }} />
@@ -2172,7 +2202,7 @@ export default function App() {
               <p style={{ color: isLightMode ? '#9ca3af' : '#a1a1aa', textAlign: 'center', marginTop: '40px' }}>Paste your lyrics on the left and click "Map" to start charting.</p>
             ) : (
               <div style={{ width: '100%' }}>
-                {lyricLines.map(line => (
+                {(() => { const firstWordLineId = lyricLines.find(l => !l.isSpacer && !l.isHeader)?.id; return lyricLines.map(line => (
                   line.isSpacer ? (
                     <div key={line.id} style={{ height: '16px', width: '100%' }}></div>
                   ) : line.isHeader ? (
@@ -2180,7 +2210,7 @@ export default function App() {
                       {line.text}
                     </div>
                   ) : (
-                    <div key={line.id} className="lyric-line avoid-break" style={styles.lyricLine}>
+                    <div key={line.id} data-tour={line.id === firstWordLineId ? 'chord-boxes' : undefined} className="lyric-line avoid-break" style={styles.lyricLine}>
                       {line.words.map(w => {
                         const originalChord = chordMap[w.id];
                         const displayChord = formatChordDisplay(originalChord, songKey, transSteps, displayFormat, preferFlats);
@@ -2207,7 +2237,7 @@ export default function App() {
                       })}
                     </div>
                   )
-                ))}
+                )); })()}
               </div>
             )}
           </div>
@@ -2265,7 +2295,7 @@ export default function App() {
             </div>
 
             <div style={{ display: 'flex', gap: '6px', marginBottom: '24px' }}>
-              <div style={{ flex: '1 1 78px' }}>
+              <div data-tour="key-field" style={{ flex: '1 1 78px' }}>
                 <label style={styles.label}>Key</label>
                 <select
                   style={{...styles.input, marginBottom: 0, padding: '9px 4px'}}
@@ -2729,6 +2759,21 @@ export default function App() {
         )}
 
       </div>
+
+      <OnboardingTour
+        isOpen={showOnboarding}
+        stepIndex={onboardingStep}
+        isLightMode={isLightMode}
+        onNext={() => {
+          if (onboardingStep >= ONBOARDING_STEPS.length - 1) {
+            closeOnboarding();
+          } else {
+            setOnboardingStep(onboardingStep + 1);
+          }
+        }}
+        onBack={() => setOnboardingStep(Math.max(0, onboardingStep - 1))}
+        onSkip={closeOnboarding}
+      />
     </>
   );
 }
