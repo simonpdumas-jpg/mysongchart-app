@@ -12,17 +12,26 @@ const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 // no per-request token fetch/template. RLS policies check
 // auth.jwt() ->> 'sub' rather than auth.uid(), since Clerk user ids
 // ("user_2abc...") aren't UUIDs.
-// Returns null when the env vars aren't configured for this deployment
-// (e.g. Production scope not added yet), rather than throwing and taking
-// the whole app down - the charts feature degrades to unavailable instead.
+// Returns null when the env vars aren't configured (or are malformed) for
+// this deployment, rather than throwing and taking the whole app down - the
+// charts feature degrades to unavailable instead. createClient() validates
+// the URL shape itself and throws synchronously on anything it doesn't like
+// (missing var, wrong scheme, stray whitespace, etc.), so this is a real
+// failure mode, not just a theoretical one - catch it rather than trusting
+// the env vars are well-formed just because they're present.
 export function useSupabaseClient() {
   const { session } = useSession();
 
   return useMemo(() => {
     if (!supabaseUrl || !supabaseAnonKey) return null;
-    return createClient(supabaseUrl, supabaseAnonKey, {
-      accessToken: () => session?.getToken() ?? null,
-    });
+    try {
+      return createClient(supabaseUrl, supabaseAnonKey, {
+        accessToken: () => session?.getToken() ?? null,
+      });
+    } catch (err) {
+      console.error('Failed to create Supabase client - check VITE_SUPABASE_URL/VITE_SUPABASE_ANON_KEY', err);
+      return null;
+    }
   }, [session]);
 }
 
