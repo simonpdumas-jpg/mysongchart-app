@@ -715,8 +715,10 @@ function DraggableCanvasChord({ wordId, text, isLight, pdfTheme, onFocus, chordA
   });
   const style = transform ? { transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`, zIndex: 100, cursor: 'grabbing', opacity: 0.8 } : undefined;
   
-  // Free users default to #111827 (Black/Onyx). Pro users use selected chordAccentColor (defaults to #111827).
-  let chordColor = isPro ? chordAccentColor : '#111827';
+  // Free users default to Black/Onyx in light mode, White in dark mode (so
+  // chords stay legible against either background). Pro users use their
+  // selected chordAccentColor, which itself defaults the same way.
+  let chordColor = isPro ? chordAccentColor : (isLight ? '#111827' : '#ffffff');
 
   let fontStyle = `'Cal Sans', ${FONT_STACK_SANS}`;
   if (pdfTheme === 'classic-studio') fontStyle = "'Roboto Mono', 'SFMono-Regular', Consolas, 'Courier New', Courier, monospace";
@@ -1235,6 +1237,20 @@ export default function App() {
       setIsLightMode(true);
     }
   }, [isPro]);
+
+  // The default chord color (the first, unlabeled-custom swatch) tracks the
+  // theme so it's always legible: black on light backgrounds, white on dark.
+  // Only auto-flips when the current color IS still one of those two
+  // defaults, so a deliberately picked color (Red/Blue/Green/Yellow) is
+  // left alone when the user switches theme.
+  useEffect(() => {
+    setChordAccentColor(prev => {
+      if (prev === '#111827' || prev === '#ffffff') {
+        return isLightMode ? '#111827' : '#ffffff';
+      }
+      return prev;
+    });
+  }, [isLightMode]);
 
   // Load saved chart state on app startup
   useEffect(() => {
@@ -1961,13 +1977,14 @@ export default function App() {
               </label>
               <div style={{ display: 'flex', gap: '6px', alignItems: 'center', justifyContent: 'center' }}>
                 {[
-                  { name: 'Black', value: '#111827' },
+                  { name: isLightMode ? 'Black' : 'White', value: isLightMode ? '#111827' : '#ffffff' },
                   { name: 'Red', value: '#DC2626' },
                   { name: 'Blue', value: '#2563EB' },
                   { name: 'Green', value: '#16A34A' },
                   { name: 'Yellow', value: '#EAB308' }
                 ].map((color) => {
-                  const isSelected = isPro ? chordAccentColor === color.value : color.value === '#111827';
+                  const defaultChordColor = isLightMode ? '#111827' : '#ffffff';
+                  const isSelected = isPro ? chordAccentColor === color.value : color.value === defaultChordColor;
                   return (
                     <button
                       key={color.value}
