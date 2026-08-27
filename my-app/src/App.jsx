@@ -183,7 +183,6 @@ const globalStyles = `
       display: flex !important;
       flex-direction: column !important;
       width: 100% !important;
-      height: calc(100vh - 48px) !important;
       flex: 1 !important;
     }
     .column-center {
@@ -228,10 +227,11 @@ const getStyles = (isLight, pdfTheme) => {
   }
 
   return {
-    container: { display: 'flex', height: '100vh', maxHeight: '100vh', fontFamily: `'Cal Sans', ${FONT_STACK_SANS}`, backgroundColor: isLight ? '#f3f4f6' : '#18181b', color: isLight ? '#1f2937' : '#e4e4e7', transition: 'all 0.3s' },
-    columnLeft: { padding: '24px', borderRight: `1px solid ${isLight ? '#e5e7eb' : '#27272a'}`, display: 'flex', flexDirection: 'column', height: '100vh', minHeight: 0, boxSizing: 'border-box', backgroundColor: isLight ? '#ffffff' : '#18181b', overflowY: 'auto' },
-    columnCenter: { flex: 1, minWidth: 0, height: '100vh', minHeight: 0, boxSizing: 'border-box', paddingTop: '24px', paddingRight: '28px', paddingBottom: '36px', paddingLeft: '28px', overflowY: 'auto', backgroundColor: isLight ? '#ffffff' : '#09090b', fontFamily: canvasFont, position: 'relative' },
-    columnRight: { padding: '24px', height: '100vh', minHeight: 0, boxSizing: 'border-box', borderLeft: `1px solid ${isLight ? '#e5e7eb' : '#27272a'}`, backgroundColor: isLight ? '#ffffff' : '#18181b', overflowY: 'auto' },
+    container: { display: 'flex', flexDirection: 'column', height: '100vh', maxHeight: '100vh', fontFamily: `'Cal Sans', ${FONT_STACK_SANS}`, backgroundColor: isLight ? '#f3f4f6' : '#18181b', color: isLight ? '#1f2937' : '#e4e4e7', transition: 'all 0.3s' },
+    topHeaderBar: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0, padding: '10px 24px', gap: '12px', borderBottom: `1px solid ${isLight ? '#e5e7eb' : '#27272a'}`, backgroundColor: isLight ? '#ffffff' : '#18181b' },
+    columnLeft: { padding: '24px', borderRight: `1px solid ${isLight ? '#e5e7eb' : '#27272a'}`, display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0, boxSizing: 'border-box', backgroundColor: isLight ? '#ffffff' : '#18181b', overflowY: 'auto' },
+    columnCenter: { flex: 1, minWidth: 0, height: '100%', minHeight: 0, boxSizing: 'border-box', paddingTop: '24px', paddingRight: '28px', paddingBottom: '36px', paddingLeft: '28px', overflowY: 'auto', backgroundColor: isLight ? '#ffffff' : '#09090b', fontFamily: canvasFont, position: 'relative' },
+    columnRight: { padding: '24px', height: '100%', minHeight: 0, boxSizing: 'border-box', borderLeft: `1px solid ${isLight ? '#e5e7eb' : '#27272a'}`, backgroundColor: isLight ? '#ffffff' : '#18181b', overflowY: 'auto' },
     header: { marginTop: 0, fontSize: '1.375rem', fontWeight: '600', color: isLight ? '#111827' : '#f4f4f5', letterSpacing: '-0.5px', marginBottom: '16px', fontFamily: `'Cal Sans', ${FONT_STACK_SANS}` },
     subHeader: { fontSize: '1rem', fontWeight: '600', color: isLight ? '#6b7280' : '#a1a1aa', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px', marginTop: '16px', fontFamily: `'Cal Sans', ${FONT_STACK_SANS}` },
     label: { fontSize: '0.9375rem', color: isLight ? '#4b5563' : '#a1a1aa', marginBottom: '4px', display: 'block', fontWeight: '500', fontFamily: `'Cal Sans', ${FONT_STACK_SANS}`, textWrap: 'balance' },
@@ -1704,8 +1704,53 @@ export default function App() {
     <>
       <style>{globalStyles}</style>
       <div className="app-container" style={styles.container}>
-        
+
         <input type="file" accept=".json" ref={fileInputRef} style={{ display: 'none' }} onChange={handleLoadSession} />
+
+        {/* TOP HEADER BAR: global app chrome, sits above the three-column layout */}
+        <div className="top-header-bar" style={styles.topHeaderBar}>
+          <h2 className="brand-title" style={{...styles.header, margin: 0, lineHeight: '1'}}>MySongChart</h2>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <SignedOut>
+              <SignUpButton mode="modal">
+                <button type="button" style={{ padding: '6px 12px', backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '0.875rem', fontWeight: 'bold', fontFamily: `'Cal Sans', ${FONT_STACK_SANS}`, whiteSpace: 'nowrap' }}>
+                  Sign Up
+                </button>
+              </SignUpButton>
+            </SignedOut>
+
+            <SignedIn>
+              <UserButton afterSignOutUrl="/" />
+            </SignedIn>
+
+            <button
+              type="button"
+              onClick={() => setShowHelpModal(true)}
+              style={{ background: 'none', border: `1px solid ${isLightMode ? '#d1d5db' : '#3f3f46'}`, color: isLightMode ? '#111827' : '#e4e4e7', padding: '4px 8px', borderRadius: '6px', cursor: 'pointer', fontSize: '0.875rem', fontWeight: 'bold' }}
+              title="Quick Guide & Help"
+            >
+              ❓
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                if (!isPro) {
+                  setShowUpgradeModal(true);
+                  setIsLightMode(true);
+                } else {
+                  setIsLightMode(!isLightMode);
+                }
+              }}
+              style={{ background: 'none', border: `1px solid ${isLightMode ? '#d1d5db' : '#3f3f46'}`, color: isLightMode ? '#111827' : '#e4e4e7', padding: '4px 8px', borderRadius: '6px', cursor: 'pointer', fontSize: '0.875rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '4px' }}
+              title="Toggle Dark/Light Mode"
+            >
+              {!isPro && <LockIcon size={11} style={{ opacity: 0.6 }} />}
+              {isLightMode ? '🌙' : '☀️'}
+            </button>
+          </div>
+        </div>
 
         {/* MOBILE-ONLY: Best on desktop notice, dismissible, non-blocking */}
         {showMobileDesktopNotice && (
@@ -1794,30 +1839,10 @@ export default function App() {
         </div>
 
         <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
-          
+        <div className="columns-row" style={{ display: 'flex', flex: 1, minHeight: 0 }}>
+
           {/* LEFT COLUMN */}
           <div className={`column-left ${activeMobileTab === 'lyrics' ? 'mobile-show-active' : 'mobile-hide'}`} style={{ ...styles.columnLeft, width: `${leftWidth}px` }} onClick={() => setFocusedWordId(null)}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexShrink: 0 }}>
-              <h2 className="brand-title" style={{...styles.header, margin: 0, lineHeight: '1'}}>MySongChart</h2>
-
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <SignedOut>
-                  <SignUpButton mode="modal">
-                    <button type="button" style={{ padding: '6px 12px', backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '0.875rem', fontWeight: 'bold', fontFamily: `'Cal Sans', ${FONT_STACK_SANS}`, whiteSpace: 'nowrap' }}>
-                      Sign Up
-                    </button>
-                  </SignUpButton>
-                </SignedOut>
-
-                <SignedIn>
-                  <UserButton afterSignOutUrl="/" />
-                </SignedIn>
-              </div>
-            </div>
-
-            {/* Aligns "Paste your lyrics" with the center column's divider line above "Verse 1" */}
-            <div style={{ height: '147px', flexShrink: 0 }} />
-
             <div style={{ display: 'flex', flexDirection: 'column', flex: '1 1 auto', marginBottom: '12px' }}>
               <h2 className="header-title" style={{ ...styles.header, margin: '0 0 12px 0', fontSize: '1.25rem', flexShrink: 0 }}>Paste your lyrics</h2>
               <div style={{ fontSize: '0.875rem', color: isLightMode ? '#6b7280' : '#a1a1aa', marginBottom: '6px', lineHeight: '1.3', flexShrink: 0 }}>
@@ -1987,6 +2012,12 @@ export default function App() {
             <div id="action-bar" style={{ display: 'flex', gap: '10px', alignItems: 'center', justifyContent: 'center', marginBottom: '24px', flexWrap: 'wrap', width: '100%' }}>
               <button type="button" className="top-action-btn" style={{ ...styles.actionButton, flex: 1, maxWidth: '140px', textAlign: 'center' }} onClick={handleNewChart}>
                 ➕ New
+              </button>
+              <button type="button" className="top-action-btn" style={{ ...styles.actionButton, flex: 1, maxWidth: '140px', textAlign: 'center' }} onClick={() => {
+                // TODO: wire up save/load chart browsing once that feature is built.
+                console.log('My Charts clicked - not implemented yet');
+              }}>
+                📁 My Charts
               </button>
               <button type="button" className="top-action-btn" style={{ ...styles.actionButton, flex: 1, maxWidth: '140px', textAlign: 'center' }} onClick={() => setShowPreview(true)} title="Shortcut: Cmd+E / Ctrl+E">
                 📤 Export
@@ -2194,39 +2225,9 @@ export default function App() {
               )}
             </div>
 
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', gap: '8px' }}>
-              <h2 className="header-title" style={{ ...styles.header, margin: 0, fontSize: '1.25rem', whiteSpace: 'nowrap' }}>
-                Chord Palette
-              </h2>
-
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
-                <button
-                  type="button"
-                  onClick={() => setShowHelpModal(true)}
-                  style={{ background: 'none', border: `1px solid ${isLightMode ? '#d1d5db' : '#3f3f46'}`, color: isLightMode ? '#111827' : '#e4e4e7', padding: '4px 8px', borderRadius: '6px', cursor: 'pointer', fontSize: '0.875rem', fontWeight: 'bold' }}
-                  title="Quick Guide & Help"
-                >
-                  ❓
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (!isPro) {
-                      setShowUpgradeModal(true);
-                      setIsLightMode(true);
-                    } else {
-                      setIsLightMode(!isLightMode);
-                    }
-                  }}
-                  style={{ background: 'none', border: `1px solid ${isLightMode ? '#d1d5db' : '#3f3f46'}`, color: isLightMode ? '#111827' : '#e4e4e7', padding: '4px 8px', borderRadius: '6px', cursor: 'pointer', fontSize: '0.875rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '4px' }}
-                  title="Toggle Dark/Light Mode"
-                >
-                  {!isPro && <LockIcon size={11} style={{ opacity: 0.6 }} />}
-                  {isLightMode ? '🌙' : '☀️'}
-                </button>
-              </div>
-            </div>
+            <h2 className="header-title" style={{ ...styles.header, margin: '0 0 24px 0', fontSize: '1.25rem' }}>
+              Chord Palette
+            </h2>
 
             <label style={styles.label}>Display Format</label>
             <div style={{ display: 'flex', gap: '4px', marginBottom: '24px', flexWrap: 'wrap' }}>
@@ -2368,6 +2369,7 @@ export default function App() {
 
           </div>
 
+        </div>
         </DndContext>
 
         {/* --- HELP CENTER MODAL --- */}
