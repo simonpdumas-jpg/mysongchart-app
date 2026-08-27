@@ -1033,6 +1033,9 @@ export default function App() {
 
   const transSteps = parseInt(transpose, 10) || 0;
 
+  const isMinorKey = (songKey || 'G').trim().endsWith('m');
+  const keyRootLetter = (songKey || 'G').trim().replace(/m$/, '');
+
   const AMBIGUOUS_ROOTS = ['C#', 'D#', 'F#', 'G#', 'A#', 'Db', 'Eb', 'Gb', 'Ab', 'Bb'];
   const isAmbiguousRoot = (note) => AMBIGUOUS_ROOTS.includes(note);
 
@@ -2233,37 +2236,48 @@ export default function App() {
               <button type="button" onClick={() => setDisplayFormat('solfege')} style={displayFormat === 'solfege' ? styles.miniBtnActive : styles.miniBtnInactive}>Do Re Mi</button>
             </div>
 
-            <div style={{ display: 'flex', gap: '8px', marginBottom: '24px' }}>
-              <div style={{ flex: 1 }}>
+            <div style={{ display: 'flex', gap: '6px', marginBottom: '24px' }}>
+              <div style={{ flex: '0 1 62px' }}>
                 <label style={styles.label}>Key</label>
                 <select
-                  style={{...styles.input, marginBottom: 0, padding: '9px'}}
-                  value={KEY_OPTIONS.some(k => k.value === songKey) ? songKey : 'G'}
-                  onChange={e => handleKeySelect(e.target.value)}
+                  style={{...styles.input, marginBottom: 0, padding: '9px 4px'}}
+                  value={KEY_OPTIONS.some(k => k.value === keyRootLetter) ? keyRootLetter : 'G'}
+                  onChange={e => handleKeySelect(e.target.value + (isMinorKey ? 'm' : ''))}
                 >
                   {KEY_OPTIONS.map(k => (
                     <option key={k.value} value={k.value}>{k.label}</option>
                   ))}
                 </select>
               </div>
-              <div style={{ flex: 1 }}>
-                <label style={styles.label}>Capo</label>
-                <input type="number" style={{...styles.input, marginBottom: 0}} value={capo} onChange={e => { saveSnapshot(); setCapo(e.target.value); }} placeholder="0" />
+              <div style={{ flex: '1 1 78px' }}>
+                <label style={styles.label}>Mode</label>
+                <select
+                  style={{...styles.input, marginBottom: 0, padding: '9px 4px'}}
+                  value={isMinorKey ? 'minor' : 'major'}
+                  onChange={e => handleKeySelect(keyRootLetter + (e.target.value === 'minor' ? 'm' : ''))}
+                >
+                  <option value="major">Major</option>
+                  <option value="minor">Minor</option>
+                </select>
               </div>
-              <div style={{ flex: 1 }} onClick={() => { if (!isPro) setShowUpgradeModal(true); }}>
+              <div style={{ flex: '0 1 56px' }}>
+                <label style={styles.label}>Capo</label>
+                <input type="number" style={{...styles.input, marginBottom: 0, padding: '9px 4px'}} value={capo} onChange={e => { saveSnapshot(); setCapo(e.target.value); }} placeholder="0" />
+              </div>
+              <div style={{ flex: '1 1 96px' }} onClick={() => { if (!isPro) setShowUpgradeModal(true); }}>
                 <label style={{ ...styles.label, color: !isPro ? '#9ca3af' : (isLightMode ? '#4b5563' : '#a1a1aa'), display: 'flex', alignItems: 'center', gap: '4px' }}>
                   {!isPro && <LockIcon size={11} style={{ opacity: 0.6 }} />} Transpose
                 </label>
-                <select 
+                <select
                   disabled={!isPro}
                   style={{
-                    ...styles.input, 
-                    marginBottom: 0, 
-                    padding: '9px',
+                    ...styles.input,
+                    marginBottom: 0,
+                    padding: '9px 4px',
                     opacity: !isPro ? 0.6 : 1,
                     cursor: !isPro ? 'not-allowed' : 'pointer'
-                  }} 
-                  value={transpose} 
+                  }}
+                  value={transpose}
                   onChange={e => { saveSnapshot(); setTranspose(e.target.value); }}
                 >
                   {Array.from({ length: 25 }, (_, i) => i - 12).map(num => {
