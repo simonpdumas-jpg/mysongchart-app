@@ -2428,12 +2428,12 @@ export default function App() {
                 />
                 <div style={{ fontStyle: 'italic', fontSize: '0.9375rem', color: isLightMode ? '#4b5563' : '#a1a1aa', textAlign: 'center', lineHeight: '1.2', fontFamily: getThemeFont(pdfTheme), width: '100%', maxWidth: '600px' }}>
                   <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'center', flexWrap: 'wrap' }}>
-                    <span>Songwriter(s):</span>
+                    <span>Written by</span>
                     <InlineEditableField
                       value={composer}
                       onChange={setComposer}
                       placeholder="Albert Hammond, Diane Warren"
-                      ariaLabel="Songwriter(s)"
+                      ariaLabel="Written by"
                       autoSize
                       style={{ fontStyle: 'italic', fontSize: '0.9375rem', color: 'inherit', fontFamily: 'inherit', textAlign: 'center', maxWidth: '100%' }}
                     />
@@ -3101,7 +3101,7 @@ export default function App() {
                             {songTitle || "Nothing's Gonna Stop Us Now"}
                           </h1>
                           <div style={{ fontStyle: 'italic', fontSize: '13px', color: '#4b5563', lineHeight: '1.2', fontFamily: getThemeFont(pdfTheme) }}>
-                            <div>Songwriter(s): {composer || "Albert Hammond, Diane Warren"}</div>
+                            <div>Written by {composer || "Albert Hammond, Diane Warren"}</div>
                             {(artist || "Starship") !== (composer || "Albert Hammond, Diane Warren") && (
                               <div style={{ marginTop: '1px' }}>Performed by {artist || "Starship"}</div>
                             )}
