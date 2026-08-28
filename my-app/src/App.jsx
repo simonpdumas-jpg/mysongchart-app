@@ -1220,18 +1220,36 @@ export default function App() {
       if (trimmed === '') return { id: `line-${lineIndex}`, isSpacer: true, isHeader: false, words: [] };
 
       const sanitized = trimmed.replace(/[\u200B-\u200D\uFEFF]/g, '');
-      const lower = sanitized.toLowerCase();
+      // Header detection (below) has to run on the tag-stripped text - a
+      // bolded/underlined "Verse" (<b><u>Verse</u></b>) still needs to be
+      // recognized as a section header, not fall through to a lyric word
+      // with a chord box, just because it no longer literally starts with
+      // "verse" once the tags are sitting in front of it.
+      const tagStripped = sanitized.replace(/<\/?[biu]>/gi, '');
+      const lower = tagStripped.toLowerCase();
 
       const isBracketed = lower.startsWith('[') && lower.endsWith(']');
       const plainHeaders = ['intro', 'chorus', 'bridge', 'outro', 'pre-chorus', 'interlude', 'instrumental', 'tag', 'coda'];
       const isPlainHeader = plainHeaders.some(h => lower === h || lower.startsWith(h + ' ')) || lower.startsWith('verse');
 
       if (isBracketed || isPlainHeader) {
-        let cleanText = sanitized;
+        let cleanText = tagStripped;
         if (isBracketed) cleanText = cleanText.slice(1, -1).trim();
         cleanText = cleanText.replace(/:$/, '').trim();
-        cleanText = cleanText.replace(/<\/?[biu]>/gi, '');
-        return { id: `line-${lineIndex}`, isSpacer: false, isHeader: true, text: cleanText, words: [] };
+        // Headers render font-weight:bold unconditionally already (that's
+        // the whole point of a header divider), so a wrapped "Verse" needs
+        // its own extra visual cue (the same text-stroke thickening used on
+        // regular words) or Cmd+B on a header would be entirely invisible -
+        // fontWeight can't go any bolder than it already is. A header is
+        // one rendered block, not per-word objects, so this just checks for
+        // the tag's presence anywhere in the line rather than reusing
+        // parseFormattedWords' word-splitting (which anchors a tag's flags
+        // to whichever word it's adjacent to - a "[" sitting right against
+        // "<i>" with no space would otherwise swallow it).
+        const isBold = /<b>/i.test(sanitized);
+        const isItalic = /<i>/i.test(sanitized);
+        const isUnderline = /<u>/i.test(sanitized);
+        return { id: `line-${lineIndex}`, isSpacer: false, isHeader: true, text: cleanText, words: [], isBold, isItalic, isUnderline };
       }
 
       const wordObjects = parseFormattedWords(sanitized).map((word, wordIndex) => ({
@@ -2516,7 +2534,7 @@ export default function App() {
                   line.isSpacer ? (
                     <div key={line.id} style={{ height: '16px', width: '100%' }}></div>
                   ) : line.isHeader ? (
-                    <div key={line.id} style={{ width: '100%', textAlign: 'left', fontWeight: 'bold', fontSize: '1.125rem', marginTop: '24px', marginBottom: '8px', color: isLightMode ? '#1f2937' : '#f4f4f5', fontFamily: getThemeFont(pdfTheme) }}>
+                    <div key={line.id} style={{ width: '100%', textAlign: 'left', fontWeight: 'bold', fontSize: '1.125rem', marginTop: '24px', marginBottom: '8px', color: isLightMode ? '#1f2937' : '#f4f4f5', fontFamily: getThemeFont(pdfTheme), WebkitTextStroke: line.isBold ? '0.6px currentColor' : undefined, transform: line.isItalic ? 'skewX(-12deg)' : undefined, transformOrigin: 'left', textDecoration: line.isUnderline ? 'underline' : undefined }}>
                       {line.text}
                     </div>
                   ) : (
@@ -3130,7 +3148,7 @@ export default function App() {
                         line.isSpacer ? (
                           <div key={line.id} style={{ height: '16px', width: '100%' }}></div>
                         ) : line.isHeader ? (
-                          <div key={line.id} className="avoid-break" style={{ width: '100%', textAlign: 'left', fontWeight: 'bold', fontSize: '15px', marginTop: '18px', marginBottom: '6px', color: '#111827', letterSpacing: '0.5px', textTransform: 'uppercase', fontFamily: getThemeFont(pdfTheme) }}>
+                          <div key={line.id} className="avoid-break" style={{ width: '100%', textAlign: 'left', fontWeight: 'bold', fontSize: '15px', marginTop: '18px', marginBottom: '6px', color: '#111827', letterSpacing: '0.5px', textTransform: 'uppercase', fontFamily: getThemeFont(pdfTheme), WebkitTextStroke: line.isBold ? '0.6px currentColor' : undefined, transform: line.isItalic ? 'skewX(-12deg)' : undefined, transformOrigin: 'left', textDecoration: line.isUnderline ? 'underline' : undefined }}>
                             {line.text}
                           </div>
                         ) : (
