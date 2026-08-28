@@ -793,7 +793,7 @@ function DraggableCanvasChord({ wordId, text, isLight, pdfTheme, onFocus, chordA
   );
 }
 
-function DroppableWord({ id, word, assignedChord, isLight, pdfTheme, isFocused, isSelected, onFocus, isBold, chordAccentColor, isPro }) {
+function DroppableWord({ id, word, assignedChord, isLight, pdfTheme, isFocused, isSelected, onFocus, isBold, isItalic, isUnderline, chordAccentColor, isPro }) {
   const { isOver, setNodeRef } = useDroppable({ id });
   const styles = getStyles(isLight, pdfTheme);
   const isEmptyBeat = word === '_';
@@ -924,16 +924,19 @@ function DroppableWord({ id, word, assignedChord, isLight, pdfTheme, isFocused, 
           />
         )}
       </div>
-      {/* font-weight: bold alone silently does nothing on several of this
-          app's theme fonts (Cal Sans ships only one static 600 weight;
-          Architects Daughter only 400 - confirmed via their actual
-          @font-face declarations) - the browser has no bold face to
-          select and font-synthesis is disabled globally (index.css) for
-          cross-browser consistency anyway. -webkit-text-stroke thickens
-          the glyphs directly regardless of which weights the active
-          theme's font actually has, so "start a line with *" reliably
-          renders visibly bold across every theme. */}
-      <div className="word-text" style={{...styles.wordText, color: isEmptyBeat ? 'transparent' : (isLight ? '#111827' : '#e4e4e7'), fontWeight: isBold ? 'bold' : undefined, WebkitTextStroke: isBold ? '0.6px currentColor' : undefined}}>
+      {/* font-weight: bold and font-style: italic alone silently do nothing
+          on several of this app's theme fonts (Cal Sans ships only one
+          static 600 weight and no italic; Architects Daughter only 400,
+          no italic either - confirmed via their actual @font-face
+          declarations) - the browser has no bold/italic face to select
+          and font-synthesis is disabled globally (index.css) for
+          cross-browser consistency anyway. -webkit-text-stroke and a
+          manual skew both fake the effect directly at the glyph level
+          regardless of which faces the active theme's font actually has,
+          so Cmd+B / Cmd+I reliably render visibly across every theme.
+          text-decoration (underline) isn't a font-style variant, so it
+          doesn't have this problem and needs no workaround. */}
+      <div className="word-text" style={{...styles.wordText, color: isEmptyBeat ? 'transparent' : (isLight ? '#111827' : '#e4e4e7'), fontWeight: isBold ? 'bold' : undefined, WebkitTextStroke: isBold ? '0.6px currentColor' : undefined, transform: isItalic ? 'skewX(-12deg)' : undefined, textDecoration: isUnderline ? 'underline' : undefined}}>
         {isEmptyBeat ? '_' : word}
       </div>
     </div>
@@ -1112,6 +1115,7 @@ export default function App() {
 
   const styles = getStyles(isLightMode, pdfTheme);
   const fileInputRef = useRef(null);
+  const lyricsTextareaRef = useRef(null);
 
   const [songTitle, setSongTitle] = useState("");
   const [artist, setArtist] = useState("");
@@ -1161,21 +1165,63 @@ export default function App() {
   const [history, setHistory] = useState([]);
   const [redoStack, setRedoStack] = useState([]);
 
+  // Parses inline <b>/<i>/<u> markers (written into the textarea by the
+  // Cmd+B / Cmd+I / Cmd+U shortcuts below) into a flat list of words, each
+  // carrying its own isBold/isItalic/isUnderline flags. Tags never appear
+  // inside a word's own text, and a tag can never split a whitespace-free
+  // run into two separate words - the canvas treats one word as one chord
+  // slot, so formatting always resolves to whole-word granularity even if a
+  // tag was hand-edited to land mid-word (its flags just apply to the whole
+  // merged word from that point on).
+  const parseFormattedWords = (text) => {
+    const parts = text.split(/(<\/?[biu]>)/i);
+    let bold = false, italic = false, underline = false;
+    const words = [];
+    let pending = null;
+
+    const flushPending = () => {
+      if (pending && pending.text.length > 0) words.push(pending);
+      pending = null;
+    };
+
+    for (const part of parts) {
+      if (!part) continue;
+      const tagMatch = /^<(\/?)([biu])>$/i.exec(part);
+      if (tagMatch) {
+        const closing = tagMatch[1] === '/';
+        const type = tagMatch[2].toLowerCase();
+        if (type === 'b') bold = !closing;
+        else if (type === 'i') italic = !closing;
+        else if (type === 'u') underline = !closing;
+        continue;
+      }
+      const pieces = part.split(/(\s+)/);
+      for (const piece of pieces) {
+        if (piece === '') continue;
+        if (/^\s+$/.test(piece)) {
+          flushPending();
+          continue;
+        }
+        if (pending) {
+          pending.text += piece;
+        } else {
+          pending = { text: piece, isBold: bold, isItalic: italic, isUnderline: underline };
+        }
+      }
+    }
+    flushPending();
+    return words;
+  };
+
   const processLinesLogic = (text) => {
     const lines = text.split('\n');
     return lines.map((line, lineIndex) => {
       const trimmed = line.trim();
       if (trimmed === '') return { id: `line-${lineIndex}`, isSpacer: true, isHeader: false, words: [] };
-      
-      let sanitized = trimmed.replace(/[\u200B-\u200D\uFEFF]/g, '');
-      let isBold = false;
-      if (sanitized.startsWith('*')) {
-        isBold = true;
-        sanitized = sanitized.slice(1).trim();
-      }
-      
+
+      const sanitized = trimmed.replace(/[\u200B-\u200D\uFEFF]/g, '');
       const lower = sanitized.toLowerCase();
-      
+
       const isBracketed = lower.startsWith('[') && lower.endsWith(']');
       const plainHeaders = ['intro', 'chorus', 'bridge', 'outro', 'pre-chorus', 'interlude', 'instrumental', 'tag', 'coda'];
       const isPlainHeader = plainHeaders.some(h => lower === h || lower.startsWith(h + ' ')) || lower.startsWith('verse');
@@ -1183,13 +1229,19 @@ export default function App() {
       if (isBracketed || isPlainHeader) {
         let cleanText = sanitized;
         if (isBracketed) cleanText = cleanText.slice(1, -1).trim();
-        cleanText = cleanText.replace(/:$/, '').trim(); 
-        return { id: `line-${lineIndex}`, isSpacer: false, isHeader: true, text: cleanText, words: [], isBold };
+        cleanText = cleanText.replace(/:$/, '').trim();
+        cleanText = cleanText.replace(/<\/?[biu]>/gi, '');
+        return { id: `line-${lineIndex}`, isSpacer: false, isHeader: true, text: cleanText, words: [] };
       }
 
-      const splitWords = sanitized.split(/\s+/).filter(w => w.length > 0);
-      const wordObjects = splitWords.map((word, wordIndex) => ({ id: `word-${lineIndex}-${wordIndex}`, text: word }));
-      return { id: `line-${lineIndex}`, isSpacer: false, isHeader: false, words: wordObjects, isBold };
+      const wordObjects = parseFormattedWords(sanitized).map((word, wordIndex) => ({
+        id: `word-${lineIndex}-${wordIndex}`,
+        text: word.text,
+        isBold: word.isBold,
+        isItalic: word.isItalic,
+        isUnderline: word.isUnderline,
+      }));
+      return { id: `line-${lineIndex}`, isSpacer: false, isHeader: false, words: wordObjects };
     });
   };
 
@@ -1540,7 +1592,9 @@ export default function App() {
         }
       }
 
-      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'e') {
+      // Export Chart: Cmd+Shift+E / Ctrl+Shift+E (moved off plain Cmd+E, which
+      // is now free for other uses)
+      if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key.toLowerCase() === 'e') {
         e.preventDefault();
         setShowPreview((prev) => !prev);
       }
@@ -1726,6 +1780,53 @@ export default function App() {
     saveSnapshot();
     setLyricLines(processLinesLogic(inputText));
     setFocusedWordId(null);
+  };
+
+  // Cmd/Ctrl+B, +I, +U in the lyrics textarea: wrap the current selection in
+  // <b>/<i>/<u> (or strip the tag if the selection is already exactly
+  // wrapped, so the shortcut toggles). The selection is first snapped out to
+  // whole-word boundaries - the canvas renders one word as one chord slot,
+  // so formatting can't apply to just part of a word - then re-selected
+  // after the edit so pressing the same shortcut again toggles it back off,
+  // and a second shortcut (e.g. Cmd+I right after Cmd+B) stacks onto the
+  // same span instead of needing to re-select it.
+  const applyLyricsFormatting = (tag) => {
+    const textarea = lyricsTextareaRef.current;
+    if (!textarea) return;
+    const value = textarea.value;
+    let start = textarea.selectionStart;
+    let end = textarea.selectionEnd;
+
+    // Collapsed cursor: expand to the word it's sitting in, if any.
+    if (start === end) {
+      while (start > 0 && !/\s/.test(value[start - 1])) start--;
+      while (end < value.length && !/\s/.test(value[end])) end++;
+      if (start === end) return; // cursor is in whitespace/empty line - nothing to format
+    } else {
+      // Snap a partial selection out to the words it touches.
+      while (start > 0 && !/\s/.test(value[start - 1])) start--;
+      while (end < value.length && !/\s/.test(value[end])) end++;
+    }
+
+    const selected = value.slice(start, end);
+    const openTag = `<${tag}>`;
+    const closeTag = `</${tag}>`;
+    let replacement;
+    if (selected.startsWith(openTag) && selected.endsWith(closeTag)) {
+      replacement = selected.slice(openTag.length, selected.length - closeTag.length);
+    } else {
+      replacement = `${openTag}${selected}${closeTag}`;
+    }
+
+    const newValue = value.slice(0, start) + replacement + value.slice(end);
+    setInputText(newValue);
+    // Restore focus + selection on the next tick, once React has applied
+    // the new value to the DOM textarea.
+    requestAnimationFrame(() => {
+      if (!lyricsTextareaRef.current) return;
+      lyricsTextareaRef.current.focus();
+      lyricsTextareaRef.current.setSelectionRange(start, start + replacement.length);
+    });
   };
 
   // Click-to-assign: clicking a palette chord fills it into whichever chord
@@ -2073,6 +2174,7 @@ export default function App() {
               </div>
               <textarea
                 data-tour="lyrics-textarea"
+                ref={lyricsTextareaRef}
                 style={styles.textArea}
                 value={inputText}
                 onChange={e => setInputText(e.target.value)}
@@ -2080,6 +2182,22 @@ export default function App() {
                   if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
                     e.preventDefault();
                     processLyrics();
+                    return;
+                  }
+                  if ((e.metaKey || e.ctrlKey) && !e.shiftKey && e.key.toLowerCase() === 'b') {
+                    e.preventDefault();
+                    applyLyricsFormatting('b');
+                    return;
+                  }
+                  if ((e.metaKey || e.ctrlKey) && !e.shiftKey && e.key.toLowerCase() === 'i') {
+                    e.preventDefault();
+                    applyLyricsFormatting('i');
+                    return;
+                  }
+                  if ((e.metaKey || e.ctrlKey) && !e.shiftKey && e.key.toLowerCase() === 'u') {
+                    e.preventDefault();
+                    applyLyricsFormatting('u');
+                    return;
                   }
                 }}
               />
@@ -2251,7 +2369,7 @@ export default function App() {
               <button type="button" className="top-action-btn" style={{ ...styles.actionButton, flex: 1, maxWidth: '140px', textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }} onClick={handleOpenChartsModal} title="Shortcut: Cmd+S / Ctrl+S">
                 {!isPro && <LockIcon size={11} style={{ opacity: 0.6 }} />} 📁 My Charts
               </button>
-              <button data-tour="export-button" type="button" className="top-action-btn" style={{ ...styles.actionButton, flex: 1, maxWidth: '140px', textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }} onClick={() => setShowPreview(true)} title="Shortcut: Cmd+E / Ctrl+E">
+              <button data-tour="export-button" type="button" className="top-action-btn" style={{ ...styles.actionButton, flex: 1, maxWidth: '140px', textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }} onClick={() => setShowPreview(true)} title="Shortcut: Cmd+Shift+E / Ctrl+Shift+E">
                 <Download size={16} strokeWidth={2.25} /> Export
               </button>
               <div style={{ width: '1px', height: '20px', backgroundColor: isLightMode ? '#d1d5db' : '#3f3f46', margin: '0 4px' }} />
@@ -2410,7 +2528,9 @@ export default function App() {
                               setFocusedWordId(wordId);
                               setSelectedWordIds([]);
                             }}
-                            isBold={line.isBold}
+                            isBold={w.isBold}
+                            isItalic={w.isItalic}
+                            isUnderline={w.isUnderline}
                             chordAccentColor={chordAccentColor}
                             isPro={isPro}
                           />
@@ -2756,7 +2876,7 @@ export default function App() {
                       <strong>Beat Spacers:</strong> Put underscores (<code style={kbdStyle(isLightMode)}>_</code>) in lyrics to create blank chord boxes for empty measures.
                     </li>
                     <li>
-                      <strong>Bold Lines:</strong> Start any lyric line with an asterisk (<code style={kbdStyle(isLightMode)}>*</code>) in the text box to render that entire line in bold text on the chart.
+                      <strong>Bold, Italic & Underline:</strong> Select a word (or several) in the text box and press <code style={kbdStyle(isLightMode)}>⌘B</code>, <code style={kbdStyle(isLightMode)}>⌘I</code>, or <code style={kbdStyle(isLightMode)}>⌘U</code> to style it on the chart. Press the same shortcut again to remove it.
                     </li>
                   </ul>
                 </div>
@@ -2795,9 +2915,12 @@ export default function App() {
                     <div><kbd style={kbdStyle(isLightMode)}>⌘ + Shift + Z</kbd> : Redo</div>
                     <div><kbd style={kbdStyle(isLightMode)}>⌘ + A</kbd> : Select All Chords</div>
                     <div><kbd style={kbdStyle(isLightMode)}>Backspace / Delete</kbd> : Remove Selected Chords</div>
-                    <div><kbd style={kbdStyle(isLightMode)}>⌘ + E</kbd> : Export Chart</div>
+                    <div><kbd style={kbdStyle(isLightMode)}>⌘ + Shift + E</kbd> : Export Chart</div>
                     <div><kbd style={kbdStyle(isLightMode)}>⌘ + S</kbd> : Save Session</div>
                     <div><kbd style={kbdStyle(isLightMode)}>⌘ + C / V</kbd> : Copy/Paste Chord</div>
+                    <div><kbd style={kbdStyle(isLightMode)}>⌘ + B</kbd> : Bold Selected Word(s)</div>
+                    <div><kbd style={kbdStyle(isLightMode)}>⌘ + I</kbd> : Italicize Selected Word(s)</div>
+                    <div><kbd style={kbdStyle(isLightMode)}>⌘ + U</kbd> : Underline Selected Word(s)</div>
                     <div><kbd style={kbdStyle(isLightMode)}>Esc</kbd> : Deselect / Close</div>
                   </div>
                 </div>
@@ -3021,7 +3144,7 @@ export default function App() {
                                       </span>
                                     )}
                                   </div>
-                                  <div className="word-text" style={{ fontSize: pdfTheme === 'minimalist' ? '10pt' : '12pt', color: isEmptyBeat ? 'transparent' : '#111827', whiteSpace: 'pre', fontFamily: getThemeFont(pdfTheme), fontWeight: line.isBold ? 'bold' : undefined, WebkitTextStroke: line.isBold ? '0.6px currentColor' : undefined }}>
+                                  <div className="word-text" style={{ fontSize: pdfTheme === 'minimalist' ? '10pt' : '12pt', color: isEmptyBeat ? 'transparent' : '#111827', whiteSpace: 'pre', fontFamily: getThemeFont(pdfTheme), fontWeight: w.isBold ? 'bold' : undefined, WebkitTextStroke: w.isBold ? '0.6px currentColor' : undefined, transform: w.isItalic ? 'skewX(-12deg)' : undefined, textDecoration: w.isUnderline ? 'underline' : undefined }}>
                                     {isEmptyBeat ? '_' : w.text}
                                   </div>
                                 </div>
