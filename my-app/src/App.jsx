@@ -924,7 +924,16 @@ function DroppableWord({ id, word, assignedChord, isLight, pdfTheme, isFocused, 
           />
         )}
       </div>
-      <div className="word-text" style={{...styles.wordText, color: isEmptyBeat ? 'transparent' : (isLight ? '#111827' : '#e4e4e7'), fontWeight: isBold ? 'bold' : undefined}}>
+      {/* font-weight: bold alone silently does nothing on several of this
+          app's theme fonts (Cal Sans ships only one static 600 weight;
+          Architects Daughter only 400 - confirmed via their actual
+          @font-face declarations) - the browser has no bold face to
+          select and font-synthesis is disabled globally (index.css) for
+          cross-browser consistency anyway. -webkit-text-stroke thickens
+          the glyphs directly regardless of which weights the active
+          theme's font actually has, so "start a line with *" reliably
+          renders visibly bold across every theme. */}
+      <div className="word-text" style={{...styles.wordText, color: isEmptyBeat ? 'transparent' : (isLight ? '#111827' : '#e4e4e7'), fontWeight: isBold ? 'bold' : undefined, WebkitTextStroke: isBold ? '0.6px currentColor' : undefined}}>
         {isEmptyBeat ? '_' : word}
       </div>
     </div>
@@ -3012,7 +3021,7 @@ export default function App() {
                                       </span>
                                     )}
                                   </div>
-                                  <div className="word-text" style={{ fontSize: pdfTheme === 'minimalist' ? '10pt' : '12pt', color: isEmptyBeat ? 'transparent' : '#111827', whiteSpace: 'pre', fontFamily: getThemeFont(pdfTheme), fontWeight: line.isBold ? 'bold' : undefined }}>
+                                  <div className="word-text" style={{ fontSize: pdfTheme === 'minimalist' ? '10pt' : '12pt', color: isEmptyBeat ? 'transparent' : '#111827', whiteSpace: 'pre', fontFamily: getThemeFont(pdfTheme), fontWeight: line.isBold ? 'bold' : undefined, WebkitTextStroke: line.isBold ? '0.6px currentColor' : undefined }}>
                                     {isEmptyBeat ? '_' : w.text}
                                   </div>
                                 </div>
