@@ -172,7 +172,11 @@ const globalStyles = `
     z-index: 10;
   }
 
-  @media (max-width: 767px) {
+  /* Covers phones through tablet portrait/landscape (iPad portrait ~820px,
+     landscape ~1180px stays above this and gets the desktop 3-column
+     layout - the fixed-width sidebars don't leave enough room for the
+     center canvas column below this width). */
+  @media (max-width: 1024px) {
     .app-container {
       flex-direction: column !important;
     }
@@ -196,6 +200,12 @@ const globalStyles = `
     }
     .mobile-desktop-banner {
       display: flex !important;
+    }
+    .top-header-bar {
+      padding: 10px 12px !important;
+    }
+    .header-controls {
+      gap: 6px !important;
     }
   }
 `;
@@ -251,7 +261,13 @@ const getStyles = (isLight, pdfTheme) => {
     canvasWord: { display: 'inline-flex', flexDirection: 'column', margin: pdfTheme === 'minimalist' ? '0 8px 0 0' : '0 13px 0 0', minWidth: '24px', cursor: 'pointer', pageBreakInside: 'avoid', breakInside: 'avoid', ...spacingStyle },
     dropZone: { height: pdfTheme === 'minimalist' ? '27px' : '32px', width: '100%', minWidth: '24px', borderRadius: '4px', display: 'flex', justifyContent: 'flex-start', alignItems: 'center', marginBottom: '2px', transition: 'all 0.1s' },
     wordText: { fontSize: pdfTheme === 'minimalist' ? '1.0625rem' : '1.25rem', color: isLight ? '#111827' : '#e4e4e7', whiteSpace: 'pre', fontFamily: canvasFont, fontWeight: 400 },
-    songTitleStyle: { margin: '0 auto 4px auto', fontSize: '2.125rem', lineHeight: '1.15', textAlign: 'center', color: isLight ? '#111827' : '#f4f4f5', fontFamily: titleFont, fontWeight: 700, maxWidth: '600px', textWrap: 'balance' },
+    // clamp() scales the title down smoothly as the viewport narrows
+    // (below ~520px wide it's shrinking; above that it's the full desktop
+    // size) rather than clipping at a fixed 2.125rem - textOverflow/nowrap
+    // below is the fallback for whatever's still too long even at the
+    // clamped minimum, so long titles truncate with "..." instead of just
+    // silently disappearing off the edge of the <input> (which can't wrap).
+    songTitleStyle: { margin: '0 auto 4px auto', fontSize: 'clamp(1.25rem, 6.5vw, 2.125rem)', lineHeight: '1.15', textAlign: 'center', color: isLight ? '#111827' : '#f4f4f5', fontFamily: titleFont, fontWeight: 700, maxWidth: '600px', textWrap: 'balance', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' },
   };
 };
 
@@ -1900,7 +1916,7 @@ export default function App() {
         <div className="top-header-bar" style={styles.topHeaderBar}>
           <h2 className="brand-title" style={{...styles.header, margin: 0, lineHeight: '1'}}>MySongChart</h2>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <div className="header-controls" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <SignedOut>
               <SignUpButton mode="modal">
                 <button type="button" style={{ padding: '6px 12px', backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '0.875rem', fontWeight: 'bold', fontFamily: `'Cal Sans', ${FONT_STACK_SANS}`, whiteSpace: 'nowrap' }}>
