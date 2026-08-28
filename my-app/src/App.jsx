@@ -1783,13 +1783,16 @@ export default function App() {
   };
 
   // Cmd/Ctrl+B, +I, +U in the lyrics textarea: wrap the current selection in
-  // <b>/<i>/<u> (or strip the tag if the selection is already exactly
-  // wrapped, so the shortcut toggles). The selection is first snapped out to
-  // whole-word boundaries - the canvas renders one word as one chord slot,
-  // so formatting can't apply to just part of a word - then re-selected
-  // after the edit so pressing the same shortcut again toggles it back off,
-  // and a second shortcut (e.g. Cmd+I right after Cmd+B) stacks onto the
-  // same span instead of needing to re-select it.
+  // <b>/<i>/<u> (or strip the tag if that line's slice of the selection is
+  // already exactly wrapped, so the shortcut toggles). The selection is
+  // first snapped out to whole-word boundaries - the canvas renders one
+  // word as one chord slot, so formatting can't apply to just part of a
+  // word - then re-selected after the edit so pressing the same shortcut
+  // again toggles it back off, and a second shortcut (e.g. Cmd+I right
+  // after Cmd+B) stacks onto the same span instead of needing to re-select
+  // it. A selection spanning multiple lines gets its own tag pair wrapped
+  // around each line's slice (see below) rather than one pair around the
+  // whole thing, since the canvas parser resolves formatting per line.
   const applyLyricsFormatting = (tag) => {
     const textarea = lyricsTextareaRef.current;
     if (!textarea) return;
@@ -1811,12 +1814,20 @@ export default function App() {
     const selected = value.slice(start, end);
     const openTag = `<${tag}>`;
     const closeTag = `</${tag}>`;
-    let replacement;
-    if (selected.startsWith(openTag) && selected.endsWith(closeTag)) {
-      replacement = selected.slice(openTag.length, selected.length - closeTag.length);
-    } else {
-      replacement = `${openTag}${selected}${closeTag}`;
-    }
+
+    // A selection can span multiple lines (e.g. a whole verse), but the
+    // parser resolves <b>/<i>/<u> independently per line - a tag opened on
+    // one line and only closed on a later one would silently do nothing
+    // past the first line's closing newline. Wrap (or unwrap) each line's
+    // own slice of the selection separately instead, skipping blank lines,
+    // so every line ends up with its own complete, self-contained pair.
+    const replacement = selected.split('\n').map((segment) => {
+      if (segment.trim() === '') return segment;
+      if (segment.startsWith(openTag) && segment.endsWith(closeTag)) {
+        return segment.slice(openTag.length, segment.length - closeTag.length);
+      }
+      return `${openTag}${segment}${closeTag}`;
+    }).join('\n');
 
     const newValue = value.slice(0, start) + replacement + value.slice(end);
     setInputText(newValue);
